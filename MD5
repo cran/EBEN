@@ -1,0 +1,15 @@
+8e4bcd51e38f34b1c018a5135c43ab83 *DESCRIPTION
+ed0be34747ec2cf02f753b3c5b8f8adb *NAMESPACE
+51f1fd8d23a7a1b1656c0ea75742d8a1 *R/EBEN-internal.R
+6454b527cf733f0530fdba5a572a0d14 *R/EBelasticNet.Gaussian.R
+4f8bc3e7f7b033cc3d12c8580641c6f5 *R/EBelasticNet.GaussianCV.R
+0da6f788cb56ec53d59367c0d08079ab *data/BASIS.rda
+38cac657604f828a1e52f34aac9af251 *data/y.rda
+3dc47cf25b174fb6ee4606a075232ee3 *man/BASIS.Rd
+c391e861ed3349868450ef07c7414e70 *man/EBEN-package.Rd
+3450d07cd4dc099dcc212421dcaa471e *man/EBelasticNet.Gaussian.Rd
+5426ddcae355585570b63da9e03e46d8 *man/EBelasticNet.GaussianCV.Rd
+5c51aca8e5b74dc36bec51d71e0a4c25 *man/y.Rd
+03cb2d11b8ddc5bd6b6f1f28edf771ee *src/Makevars
+50f09c0ffd8a6864881603f3950a7d7e *src/elasticNetLinearNeFull2.c
+40207d9814cdf16010e58bf841c41fb6 *src/elasticNetLinearNeMainEff.c
