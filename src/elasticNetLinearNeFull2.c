@@ -387,10 +387,18 @@ if(verbose >3) Rprintf("check point 3: before loop \n");
                 nu                  = i;
             }
         }
-        //
-        selectedAction              = Action[nu];
-        if(nu==-1)					anyWorthwhileAction     = 0;
-		else	anyWorthwhileAction	= 1;
+        // selectedAction          = Action[nu];
+        
+        if(nu==-1)
+		{		
+			anyWorthwhileAction     = 0;
+			selectedAction          = -10;
+		}else
+		{
+			anyWorthwhileAction	= 1;
+			selectedAction          = Action[nu];
+			newAlpha                = AlphaRoot[nu];
+		}	
 //		Rprintf("\t ActionOn nu= %d, deltaML: %f, selectedAction: %d, Alpha: %f\n",nu+1, DeltaML[nu],selectedAction,AlphaRoot[nu]);
         if(selectedAction==ACTION_REESTIMATE || selectedAction==ACTION_DELETE)
         {
@@ -433,7 +441,7 @@ if(verbose >3) Rprintf("check point 3: before loop \n");
         }
 //		Rprintf("N: %d, kk: %d,i: %d, j: %d, K: %d\n",N,kk,i,j,K);
 		//for(i=0;i<N;i++) Rprintf("phi: %f\n",phi[i]);
-        newAlpha                    = AlphaRoot[nu];
+        //newAlpha                    = AlphaRoot[nu];
 //		Rprintf("\tNew alpha: %f\n",newAlpha);
         if(anyWorthwhileAction==0)  selectedAction = ACTION_TERMINATE;
         if(selectedAction==ACTION_REESTIMATE)

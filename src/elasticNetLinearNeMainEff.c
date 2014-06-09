@@ -152,7 +152,8 @@ void elasticNetLinearNeMainEff(double *BASIS, double *y, double *a_lambda, doubl
 		b_blas = -b;
 		F77_CALL(dcopy)(&N,&b_blas,&inc0,Targets,&inci);  //dcopy(n, x, incx, y, incy) ---> y = x
 		F77_CALL(daxpy)(&N, &a_blas,y, &inci,Targets, &incj); //daxpy(n, a, x, incx, y, incy) y := a*x + y
-	
+		
+//
 		LinearFastEmpBayesGmNeEN(Used, Mu, SIGMA, H, Alpha,PHI,	BASIS, Targets,Scales, a_lambda,b_Alpha,
 						iteration, n, kdim, m,basisMax,&b,&beta,C_inv,verbose);
 
@@ -369,10 +370,18 @@ if(verbose>3) Rprintf("check point 3: before loop \n");
                 nu                  = i;
             }
         }
-        //
-        selectedAction              = Action[nu];
-        if(nu==-1)					anyWorthwhileAction     = 0;
-		else	anyWorthwhileAction	= 1;
+        //selectedAction          = Action[nu];
+		
+        if(nu==-1)
+		{		
+			anyWorthwhileAction     = 0;
+			selectedAction          = -10;
+		}else
+		{
+			anyWorthwhileAction	= 1;
+			selectedAction          = Action[nu];
+			newAlpha                = AlphaRoot[nu];
+		}
 		//Rprintf("\t ActionOn nu= %d, deltaML: %f, selectedAction: %d, Alpha: %f\n",nu+1, DeltaML[nu],selectedAction,AlphaRoot[nu]);
         if(selectedAction==ACTION_REESTIMATE || selectedAction==ACTION_DELETE)
         {
@@ -414,7 +423,7 @@ if(verbose>3) Rprintf("check point 3: before loop \n");
         }
 		//Rprintf("N: %d, kk: %d,i: %d, j: %d, K: %d\n",N,kk,i,j,K);
 		//for(i=0;i<N;i++) Rprintf("phi: %f\n",phi[i]);
-        newAlpha                    = AlphaRoot[nu];
+        //newAlpha                    = AlphaRoot[nu];
 		//Rprintf("\tNew alpha: %f\n",newAlpha);
         if(anyWorthwhileAction==0)  selectedAction = ACTION_TERMINATE;
         if(selectedAction==ACTION_REESTIMATE)

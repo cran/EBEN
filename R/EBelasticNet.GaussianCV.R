@@ -8,6 +8,7 @@ function(BASIS,Target,nFolds,Epis="no",foldId = 0)
 	#set.seed(proc.time())
 	if(length(foldId)!=N)
 	{
+	set.seed(0);
 	if(N%%nFolds!=0){
 		foldId 			= sample(c(rep(1:nFolds,floor(N/nFolds)),1:(N%%nFolds)),N);
 	}else{
