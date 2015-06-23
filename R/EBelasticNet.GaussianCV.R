@@ -8,14 +8,13 @@ function(BASIS,Target,nFolds,Epis="no",foldId = 0)
 	#set.seed(proc.time())
 	if(length(foldId)!=N)
 	{
-	set.seed(0);
 	if(N%%nFolds!=0){
 		foldId 			= sample(c(rep(1:nFolds,floor(N/nFolds)),1:(N%%nFolds)),N);
 	}else{
 		foldId 			= sample(rep(1:nFolds,floor(N/nFolds)),N);
 	}
 	}
-	lambda_Max			= log(1);
+	lambda_Max			= log(1.1);
 	for(i_b in 1:K){
 		basis 			= BASIS[,i_b];
 		basis 			= basis/sqrt(sum(basis*basis));
@@ -34,12 +33,12 @@ function(BASIS,Target,nFolds,Epis="no",foldId = 0)
 	}
 	lambda_Max 			= lambda_Max;
 	lambda_Min 			= log(0.0001*lambda_Max);
-	step 				= (log(lambda_Max) - lambda_Min)/20;
+	step 				= (log(lambda_Max) - lambda_Min)/9;
 	Lambda 				= exp(seq(from = log(lambda_Max),to=lambda_Min,by= -step))
 	N_step 				= length(Lambda);
 
 	step 				= 1;
-	Alpha 				= seq(from = 1, to = 0.05, by = -0.05)
+	Alpha 				= seq(from = 1, to = 0.05, by = -0.1)
 	nAlpha 				= length(Alpha);
 		
 	MSEcv 				= mat.or.vec((N_step*nAlpha),4);
@@ -51,7 +50,7 @@ function(BASIS,Target,nFolds,Epis="no",foldId = 0)
 		alpha 					= Alpha[i_alpha];
 		SSE1Alpha				= matrix(1e10,N_step,2);# temp matrix to keep MSE + std in each step
 
-		cat("Testing alpha", i_alpha, "/20:\t\talpha: ",alpha,"\n")
+		cat("Testing alpha", i_alpha, "/",nAlpha,":\t\talpha: ",alpha,"\n")
 		for (i_s in 1:N_step){			
 			lambda 				= Lambda[i_s];
 			min_index 			= which.min(SSE1Alpha[1:(i_s -1),1]);
@@ -67,8 +66,8 @@ function(BASIS,Target,nFolds,Epis="no",foldId = 0)
 				Basis.Test  	= BASIS[index,];
 				Target.Test 	= Target[index];
 				SimF2fEB 		<-EBelasticNet.Gaussian(Basis.Train,Target.Train,lambda,alpha,Epis);
-				M				= length(SimF2fEB$weight)/4;
-				Betas 			<- matrix(SimF2fEB$weight,nrow= M,ncol =4, byrow= FALSE);
+				M				= length(SimF2fEB$weight)/6;
+				Betas 			<- matrix(SimF2fEB$weight,nrow= M,ncol =6, byrow= FALSE);
 				Mu  			= Betas[,3];
 				Mu0 			= SimF2fEB$Intercept[1];
 				if(is.na(Mu0))
@@ -113,6 +112,6 @@ function(BASIS,Target,nFolds,Epis="no",foldId = 0)
 	Res.lambda					= MSEeachAlpha[index,2];
 	Res.alpha 					= MSEeachAlpha[index,1];
 	result 						<- list(MSEeachAlpha,Res.alpha,Res.lambda,MSEcv);
-	names(result)				<-c("CrossValidation","Alpha_optimal","Lmabda_optimal","fullCV");
+	names(result)				<-c("CrossValidation","Alpha_optimal","Lambda_optimal","fullCV");
 	return(result);
 }
