@@ -1,5 +1,9 @@
 //2: try more memory efficient
 //Sep. 27, 2014: Change BASIS_PHI to two dimensional pointer. Orignal developed for EBlasso version 3.2
+
+//version 4.2 note: initialize the least correlated variable to avoid collinear variables; delete the initial effect at the end of 1st iteration.
+// Jul. 2015
+//
 #include <R.h>
 #include <Rinternals.h>
 #include <math.h>
@@ -27,11 +31,12 @@ void fEBDeltaMLGfNeEN(double *DeltaML, int *Action, double *AlphaRoot, int *anyT
 				int *Used, int * Unused, double * S_out, double * Q_out, double *Alpha,
 				double *a_lmabda, double *b_Alpha,
 				int m, int mBar,
-				double *deltaLogMarginal, int *nu);//Block Coordinate Ascent Algorithm Parameters;
+				double *deltaLogMarginal, int *nu,double residual,double varY);//Block Coordinate Ascent Algorithm Parameters;
 
 void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, double *Alpha, double *PHI,
 				double *BASIS, double * Targets, double *Scales, double *a_lambda,double *b_Alpha,
-				int *iteration, int *n, int *kdim, int *m, int basisMax, double *b, double *beta,double * C_inv,int verbose);
+				int *iteration, int *n, int *kdim, int *m, int basisMax, double *b, double *beta,double * C_inv,int verbose,
+				double residual,double varY);
 
 
 
@@ -56,7 +61,7 @@ void elasticNetLinearNeEpisEff(double *BASIS, double *y, double *a_lambda,double
 	int K					= *kdim;
 	int verbose = VB[0];
 	int M_full				= (K+1)*K/2;
-	const int iter_max		= 50;
+	const int iter_max		= 100;
 	const double err_max	= 1e-8;
 	// set a limit for number of basis: just by guessing the upper bound
 	int basisMax;
@@ -75,7 +80,7 @@ void elasticNetLinearNeEpisEff(double *BASIS, double *y, double *a_lambda,double
 	}	
 	//if (N<500 && basisMax <100)	basisMax    = M_full;
 	//if(verbose >1) Rprintf("basisMax: %d",basisMax);
-	if(verbose >1) Rprintf("start EBLasso-NE with lambda: %f\n",*a_lambda);
+	if(verbose >1) Rprintf("start EBEN with lambda: %f\n",*a_lambda);
 	double vk				= 1e-30;
 	double vk0				= 1e-30;
 	double temp				= 0;
@@ -157,7 +162,12 @@ Beta[M_full*4 + kk] = 0;
 	double beta;
 	double *Csum			= (double *) Calloc(N,double);
 	double Cinv,Cinvy;
-	while (iter<iter_max && err>err_max)
+	
+	double varT = varTargetsGfNeEN(y,N);
+	double epsilon = varT*0.01;
+	double residvar = 1e10;
+	
+	while (iter<iter_max && err>err_max && residvar>=epsilon)
 	{
 		iter				= iter + 1;
 		
@@ -169,7 +179,7 @@ Beta[M_full*4 + kk] = 0;
 		F77_CALL(daxpy)(&N, &a_blas,y, &inci,Targets, &incj); //daxpy(n, a, x, incx, y, incy) y := a*x + y
 		
 		LinearFastEmpBayesGfNeEN(Used, Mu, SIGMA, H, Alpha,PHI,	BASIS, Targets,Scales, a_lambda,b_Alpha,
-						iteration, n, kdim, m,basisMax,&b,&beta,C_inv,verbose);
+						iteration, n, kdim, m,basisMax,&b,&beta,C_inv,verbose,residvar,varT);
 
 		//b				=1/(C_inv.Transpose()*x*x)*(C_inv.Transpose()*x*phenotype);
 
@@ -196,7 +206,8 @@ Beta[M_full*4 + kk] = 0;
 		F77_CALL(daxpy)(&M, &a_blas,Alpha, &inci,&vk, &inc0); //daxpy(n, a, x, incx, y, incy) y := a*x + y
 		
 		err					= fabs(vk - vk0)/m[0];
-		if(verbose >2) Rprintf("Iteration number: %d, err: %f\n",iter,err);
+		residvar = 1/(beta + 1e-10);
+		if(verbose >2) Rprintf("Iteration number: %d, err: %f;\t mu: %f\tsigma0:%f.\n",iter,err,b,residvar);
 	}
 
 	// wald score
@@ -205,7 +216,7 @@ Beta[M_full*4 + kk] = 0;
 
 	wald[0]					= 0;
 	int index = 0;
-	if(verbose >1) Rprintf("EBLASSO-NE Finished, number of basis: %d\n",M);
+	if(verbose >1) Rprintf("EBEN Finished, number of basis: %d\n",M);
 	for(i=0;i<M;i++)
     {
 
@@ -255,7 +266,8 @@ Beta[M_full*4 + index] = Used[i];
 // function [Used,Mu2,SIGMA2,H2,Alpha,PHI2]=fEBBinaryMex(BASIS,Targets,PHI2,Used,Alpha,Scales,a,b,Mu2,iter)
 void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, double *Alpha, double *PHI,
 				double *BASIS, double * Targets, double *Scales, double *a_lambda,double *b_Alpha,
-				int *iteration, int *n, int *kdim, int *m,int basisMax,double *b,double *beta,double * C_inv,int verbose)
+				int *iteration, int *n, int *kdim, int *m,int basisMax,double *b,double *beta,double * C_inv,int verbose,
+				double residual,double varY)
 {
     //basis dimension
    int N,K,M_full,N_unused,M,i,j,L,iter,kk;
@@ -316,6 +328,14 @@ void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
 	//Rprintf("N_used is: %d; N_unused:%d, M: %d,sample size: %d \n",N_used,N_unused,M,N);
 
 	fEBInitializationGfNeEN(Alpha, PHI, Used, Unused, BASIS, Targets, Scales, IniLogic, N, m, K,beta);
+	//******************************************************
+	int initial = Used[0];
+	int iniRemoved = 1;
+	if (iter<=1)    
+    {
+		initial = Used[0];
+		iniRemoved = 0;
+    }
 	
 	//Block Coordinate Ascent Algorithm Parameters;
 	M = m[0];
@@ -356,7 +376,8 @@ void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
    double *DeltaML, *AlphaRoot,deltaLogMarginal,*phi,newAlpha,oldAlpha;
     double deltaInv,kappa,Mujj;
     //
-	int *Action, *anyToDelete,selectedAction;
+	int *Action, *anyToDelete;
+		int selectedAction = -10;
 	anyToDelete			= (int*) Calloc(1,int);
 	DeltaML				=	(double *) Calloc(M_full,double);
 	AlphaRoot			=	(double *) Calloc(M_full,double);
@@ -396,6 +417,9 @@ void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
 		Rprintf("\n");
 		
 	}
+	
+int itMax = 100;
+if(iter==1) itMax = 10;
    while(LAST_ITERATION!=1)
     {
         i_iter						= i_iter + 1;
@@ -407,7 +431,7 @@ void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
         //[DeltaML,Action,AlphaRoot,anyToDelete]     = fEBDeltaMLGfNeEN(Used,Unused,S_out,Q_out,Alpha,a,b);
 		fEBDeltaMLGfNeEN(DeltaML, Action, AlphaRoot,anyToDelete,Used, Unused, S_out, Q_out, Alpha,
 				a_lambda, b_Alpha,M, N_unused,
-				&deltaLogMarginal,&nu);
+				&deltaLogMarginal,&nu,residual,varY);
 		//
         //deltaLogMarginal			= MLdelta;
         //nu							= -1;
@@ -420,16 +444,30 @@ void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
         //    }
         //}
         // selectedAction          = Action[nu];
-        
-        if(nu==-1)
-		{		
+        //*******************************************************************************************
+		if(selectedAction          == ACTION_TERMINATE && iniRemoved ==0 &&M>1)
+		{
+			nu = -1;
+			if(verbose >4) Rprintf("************************** set to Remove the initial basis **************** \n");
+		}
+		
+		if(nu==-1 && iniRemoved ==1)
+		{
 			anyWorthwhileAction     = 0;
 			selectedAction          = ACTION_TERMINATE;
+		}else if(nu==-1 &&iniRemoved ==0 && M>1) //remove initialized basis
+		{
+			if(verbose >4) Rprintf("************************** Removing the initial basis **************** \n");
+			anyWorthwhileAction	= 1;
+			nu = initial-1;
+			Action[nu] = ACTION_DELETE;		
+			nUpdate = 1;	
+			nuAction[0]= initial - 1;
+			iniRemoved = 1;
+			selectedAction          = ACTION_DELETE;
 		}else
 		{
 			anyWorthwhileAction	= 1;
-			//Block Coordinate Ascent Algorithm Parameters;
-			// find a block to update;
 			if(Action[nu] == ACTION_ADD)
 			{
 				nAdd_real			= nAdd;				
@@ -455,9 +493,13 @@ void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
 				
 			}
 			if(Action[nu] == ACTION_DELETE && nUpdate>1) nUpdate = 1; // when deleting co-linear basis: delete one at a time
-			//if(verbose >4) Rprintf("\t deltaML cutoff: %f ; number to be updated: %d \n",cutoff, nUpdate);
-			
-
+if(nUpdate==0) anyWorthwhileAction=0;	
+		}
+if(anyWorthwhileAction==0)  selectedAction = ACTION_TERMINATE;		
+		if(anyWorthwhileAction	==1)
+		{
+		
+//88888888888888888888888888888888888888888888888888888888888888888888
 			for(iU=0;iU<nUpdate;iU++) //update each basis
 			{
 				nu 					= nuAction[iU];
@@ -510,7 +552,7 @@ void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
 				//for(i=0;i<N;i++) Rprintf("phi: %f\n",phi[i]);
 				//newAlpha                    = AlphaRoot[nu];
 		//		Rprintf("\tNew alpha: %f\n",newAlpha);
-				if(anyWorthwhileAction==0)  selectedAction = ACTION_TERMINATE;
+				//if(anyWorthwhileAction==0)  selectedAction = ACTION_TERMINATE;
 				if(selectedAction==ACTION_REESTIMATE)
 				{
 					if (fabs(log(newAlpha)-log(Alpha[jj]))<=0.1 && anyToDelete[0] ==0)
@@ -683,7 +725,7 @@ void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
 			 varT				= varTargetsGfNeEN(Targets,N);
 			 //Rprintf("Gaussian updat after: beta: %f\n",beta[0]);
 			 if(beta[0]>(BetaMaxFactor/varT))	beta[0] = BetaMaxFactor/varT;
-			 deltaLogBeta			= log(beta[0]) - log(betaZ1);
+			 deltaLogBeta		= log(beta[0]) - log(betaZ1);
 			 //
 			 if (fabs(deltaLogBeta)>MinDeltaLogBeta)
 			 {
@@ -702,8 +744,9 @@ void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
 
 		//Rprintf("\t\t selected Action: %d\n",selectedAction);
 		//
-        if(selectedAction==ACTION_TERMINATE) LAST_ITERATION =1;
-        if(i_iter==100)   LAST_ITERATION = 1;
+        if(selectedAction==ACTION_TERMINATE && iniRemoved == 1) LAST_ITERATION =1;
+		if((i_iter==itMax && M==1) || i_iter>itMax) LAST_ITERATION =1;
+        if(i_iter==itMax)   selectedAction=ACTION_TERMINATE;
 		//Rprintf("\t\t Last_iteration value: %d\n",LAST_ITERATION);
     }
 	
@@ -1184,7 +1227,7 @@ void MatrixInverseGfNeEN(double * a,int N)
 void fEBDeltaMLGfNeEN(double *DeltaML, int *Action, double *AlphaRoot, int *anyToDelete,
 				int *Used, int * Unused, double * S_out, double * Q_out, double *Alpha,
 				double *a_lambda, double *b_Alpha, int N_used, int N_unused,
-				double *deltaLogMarginal, int *nu)
+				double *deltaLogMarginal, int *nu,double residual,double varY)
 {
     //basis dimension
     int M_full,i,index;
@@ -1201,11 +1244,27 @@ anyToDelete[0] = 0;
 	lambda1 							= *a_lambda * (b_Alpha[0]);
 	lambda2 							= *a_lambda * (1 - b_Alpha[0]);
     //int   anyToDelete					= 0;
-    //int   anyToAdd						= 0;
+    int   anyToAdd						= 0;
     //const int CNPriorityAddition		= 0;
     //const int CNPriorityDeletion		= 1;
 	//Rprintf("Inside fEBDeltaMLBmNeEN: a: %f, b %f \n",a, b);
-	
+	int CNPriorityAddition		= 0;
+	int CNPriorityDeletion		= 0;	
+
+	double epsilon = varY*0.1; // when >90% of residual variance explained, priority is deletion.
+
+		
+	if(N_used<10)
+	{
+		CNPriorityAddition		= 1;
+		CNPriorityDeletion		= 0;
+		//Rprintf("Inside fEBDeltaMLBmNeEN: a: %f, b %f \n",a, b);
+	}
+	if(N_used>100 || residual<=epsilon)
+	{
+		CNPriorityAddition		= 0;
+		CNPriorityDeletion		= 1;
+	}	
 	//Block Coordinate Ascent Algorithm Parameters;
 	for(i=0;i<M_full;i++) Action[i] = -10;
 	double deltaMLmax = 0;
@@ -1292,7 +1351,7 @@ anyToDelete[0] = 0;
     
 	//Block Coordinate Ascent Algorithm Parameters; 
 	// only one action for a block
-	int selectedAction = Action[max];
+	//int selectedAction = Action[max];
 	
 	/*
 	if(i_iter <=(1*N_used)) // re-estimate
@@ -1310,15 +1369,7 @@ anyToDelete[0] = 0;
 		}
 	}
 	*/
-		for(i=0;i<M_full;i++)
-		{
-			if(Action[i] !=selectedAction) DeltaML[i] = 0;
-		}
-	
-deltaLogMarginal[0] = deltaMLmax;
-nu[0] 	= max;
-    
-	/*
+
     if((anyToAdd==1 && CNPriorityAddition==1) || (anyToDelete[0]==1 && CNPriorityDeletion==1))
     {
         for(i=0;i<M_full;i++)
@@ -1332,9 +1383,24 @@ nu[0] 	= max;
                     if(anyToDelete[0] ==1 && CNPriorityDeletion==1 && CNPriorityAddition!=1) DeltaML[i] = 0;
             }
         }
+		
+		deltaMLmax = 0;
+		max = 0;		
+		for(i=0;i<M_full;i++)
+		{	
+			if(DeltaML[i]>deltaMLmax)
+			{
+					max			= i;
+					deltaMLmax 	= DeltaML[i];
+			} 	
+		}	
+		
     }  
 
-	*/
+deltaLogMarginal[0] = deltaMLmax;
+nu[0] 	= max; 
+
+
 }
 
 //888888888888888888888888888888888888888888888888888888888888888888888888888888888888

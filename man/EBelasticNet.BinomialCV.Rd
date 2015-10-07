@@ -36,8 +36,15 @@ data(yBinomial)
 #reduce sample size to speed up the running time
 n = 50;
 k = 100;
-BASIS = BASISbinomial[1:n,1:k];
-y  = yBinomial[1:n];
+N = length(yBinomial);
+set.seed(1)
+set  = sample(N,n);
+BASIS = BASISbinomial[set,1:k];
+y  = yBinomial[set];
+nFolds = 3
 CV = EBelasticNet.BinomialCV(BASIS, y, nFolds = 3,Epis = "no")
+
+
+
 }
 

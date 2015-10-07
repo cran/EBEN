@@ -1,4 +1,7 @@
-
+//version 4.2 note: initialize the least correlated variable to avoid collinear variables; delete the initial effect at the end of 1st iteration.
+//version 4.3 note: initialize the largest correlated variable, but set the largest*0.9 to have correlation = 0;delete initial basis at the end of 1st itaration.
+// Jul. 2015
+//
 #include <R.h>
 #include <Rinternals.h>
 #include <math.h>
@@ -8,6 +11,7 @@
 #include <R_ext/Lapack.h>
 #include <stdlib.h>
 //B: binomial; m: main; Ne: normal + exp. _EN: elasticNet
+/*
 void printMat(double *a, int M, int N) //MxN
 {
 	int i,j;
@@ -21,11 +25,63 @@ void printMat(double *a, int M, int N) //MxN
 		Rprintf("\n");
 	}
 }
+
+void testFunc(	double *BASIS,
+				double *Scales,
+				double *PHI2,
+				double *beta,
+				double *Alpha,
+				double *SIGMA2,
+				double *H2,
+				double *S_in,
+				double *Q_in,
+				double *S_out,
+				double *Q_out,
+				double *Mu2,				
+				double * Targets,
+				double *basisCache,
+				int *n, 
+				int *kdim,
+				int *m,
+				int*Used,
+				int *nuu,
+				double *phi,
+				double *newA)
+{
+	Rprintf("\t Initialized basis %d, Alpha: %f, \n", Used[0],Alpha[0]);
+	fEBCatFullStatBmNeEN(beta, SIGMA2, H2, S_in, Q_in, S_out, Q_out,  BASIS,Scales, PHI2, 
+				Targets, Used, Alpha, Mu2, basisCache,n, m, kdim);
+
+	int nu = *nuu;
+	int M_full = *kdim;
+	int N = *n;
+	int K = M_full;
+	int M = *m;
+	double newAlpha = *newA;
+	int UPDATE_REQUIRED;
+	Rprintf("\t add basis %d, Alpha: %f, N:%d\tK:%d\tM:%d\tM_full:%d\n", nu,newAlpha,N,K,M,M_full);
+	
+	UPDATE_REQUIRED		= ActionAddBmNeEN( BASIS, Scales, PHI2, phi, beta, Alpha,
+						newAlpha, SIGMA2, Mu2, S_in, Q_in, nu, M_full, N, K, M);
+						
+	UPDATE_REQUIRED= ActionResBmNeEN(BASIS,Scales,PHI2, Alpha, SIGMA2, newAlpha,
+							Mu2, S_in, Q_in, beta, nu, N, M,M_full);						
+	printMat(SIGMA2,(M+1),(M+1));
+	UPDATE_REQUIRED = ActionDelBmNeEN(BASIS, Scales, PHI2, Alpha, SIGMA2, 
+											Mu2, S_in, Q_in, beta, nu, N, M, M_full);				
+	Rprintf("\t AFTER DEL basis %d, Alpha: %f, N:%d\tK:%d\tM:%d\tM_full:%d\n", nu,newAlpha,N,K,M,M_full);
+	printMat(SIGMA2,M,M);
+	
+}
+
+*/
+
 void LinearSolverBmNeEN(double * a, double *logout, int N,int M,double *output);
 void fEBInitializationBmNeEN(double *Alpha, double * PHI2, int *Used, int *Unused, double *Mu2,
 				double *BASIS, double *Targets, double *Scales, int * initial, int n, int *m, int kdim);
 
-
+void fEBInitializationBmNeEN2(double *Alpha, double * PHI2, int *Used, int *Unused, double *Mu2,
+				double *BASIS, double *Targets, double *Scales, int * initial, int n, int *m, int kdim);
 
 void fEBSigmoidBmNeEN(double * y, double * PHI_Mu,int N);
 double fEBDataErrorBmNeEN(double dataError,double *y,double *PHI_Mu,double *Targets,int N);
@@ -39,7 +95,7 @@ void fEBCatFullStatBmNeEN(double * beta, double * SIGMA2, double * H2, double *S
 
 void fEBDeltaMLBmNeEN(double *DeltaML, int *Action, double *AlphaRoot, int *anyToDelete,
 				int *Used, int * Unused, double * S_out, double * Q_out, double *Alpha,
-				double *a_lmabda,double *b_Alpha, int m, int mBar,double *deltaLogMarginal, int * nu);
+				double *a_lmabda,double *b_Alpha, int m, int mBar,double *deltaLogMarginal, int * nu,int N);
 
 
 void fEBBinaryMexBmNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, double *Alpha, double *PHI2,
@@ -178,7 +234,8 @@ void ElasticNetBinaryNElambdaMax(double *BASIS, double * Targets, double *Lambda
 
 
 void ElasticNetBinaryNEmainEff(double *BASIS, double * Targets, double *a_Lambda,double *b_Alpha,
-				double * logLIKELIHOOD, double * Beta, double *wald,double *intercept, int *n, int *kdim,int*VB,int*bMax)
+				double * logLIKELIHOOD, double * Beta, double *wald,double *intercept, int *n, int *kdim,
+				int*VB,int*bMax)
 {
 	int N					= *n;
 	int K					= *kdim;
@@ -186,8 +243,8 @@ void ElasticNetBinaryNEmainEff(double *BASIS, double * Targets, double *a_Lambda
 	int M_full				= K;
 	int verbose = VB[0];
 		
-	const int iter_max		= 1;
-	const double err_max	= 1e-3;
+	const int iter_max		= 100;
+	const double err_max	= 1e-8;
 	//------------------------------------------------------------	
 	int basisMax			= *bMax;
 	//------------------------------------------------------------	
@@ -224,7 +281,7 @@ void ElasticNetBinaryNEmainEff(double *BASIS, double * Targets, double *a_Lambda
 		readPtr1 = &BASIS[i*N];
 		temp = F77_CALL(ddot)(&N, readPtr1, &inci,readPtr1, &incj);
 		if(temp ==0) temp	= 1;
-		Scales[i]			=(float)sqrt(temp);
+		Scales[i]			=sqrt(temp);
 		
 	}
 	
@@ -282,7 +339,8 @@ void ElasticNetBinaryNEmainEff(double *BASIS, double * Targets, double *a_Lambda
 		//for(i=0;i<m[0]-1;i++)	vk = vk + Alpha[i];
 		vk = F77_CALL(dasum)(m, Alpha, &inci);
 		err					= fabs(vk - vk0)/m[0];
-//Rprintf("Iteration number: %d, err: %f\n",iter,err);
+		if(verbose>2) Rprintf("Iteration number: %d, err: %f\n",iter,err);
+
 	}
 
 	// wald score
@@ -291,7 +349,7 @@ void ElasticNetBinaryNEmainEff(double *BASIS, double * Targets, double *a_Lambda
 
 	wald[0]					= 0;
 	int index = 0;
-	if(verbose >1) Rprintf("EBLASSO-NEG Finished, number of basis: %d\n",M);
+	if(verbose >1) Rprintf("EBEN Finished, number of basis: %d\n",M);
 	for(i=0;i<M;i++)
     {
 
@@ -394,6 +452,16 @@ void fEBBinaryMexBmNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
 	//Rprintf("N_used is: %d; N_unused:%d, M: %d,sample size: %d \n",N_used,N_unused,M,N);
 
 	fEBInitializationBmNeEN(Alpha, PHI2, Used, Unused, Mu2, BASIS, Targets, Scales, IniLogic, N, m, K);
+	
+	//******************************************************
+	int initial = Used[0];
+	int iniRemoved = 1;
+	if (iter<=1)    
+    {
+		initial = Used[0];
+		iniRemoved = 0;
+    }
+	
 	if(verbose >3) Rprintf("\t Initialized basis %d, Alpha: %f, \n", Used[0],Alpha[0]);
 	//Rprintf("\t Initialized basis %d, Alpha: %f, Mu: %f \n", Used[0],Alpha[0],Mu2[1]);
 	//for(i=0;i<10;i++) Rprintf("PHI2: %f \t  %f; BASIS: %f\n",PHI2[i],PHI2[N+i],BASIS[181*N+i]/Scales[181]);
@@ -427,7 +495,8 @@ void fEBBinaryMexBmNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
 	
 	//double oldAlpha,s_ii,*readPtr2,mu_i,Mujj,deltaInv,kappa;
     //
-	int *Action, *anyToDelete,selectedAction;
+	int *Action, *anyToDelete;
+		int selectedAction = -10;
 	anyToDelete			= (int*) Calloc(1,int);
 	DeltaML				=	(double *) Calloc(M_full,double);
 	AlphaRoot			=	(double *) Calloc(M_full,double);
@@ -457,18 +526,24 @@ void fEBBinaryMexBmNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
 		Rprintf("\n");
 		
 	}
+int itMax = 100;
+if(iter==1) itMax = 10;	
     while(LAST_ITERATION!=1)
     {
         i_iter						= i_iter + 1;
 
-		if(verbose >4) Rprintf("\t inner loop %d; number of basis: %d \n",i_iter, M);
+		//if(verbose >4) Rprintf("\t inner loop %d; number of basis: %d ; Alpha:\n",i_iter, M);
+		
+		if(verbose >4) Rprintf("\t inner loop %d; number of basis: %d \t actionStatus: %d \tiniRemoved: %d\n",i_iter, M,selectedAction,iniRemoved);
         //M							= N_used + 1;
      	//N_unused					= M_full - N_used;
 		logL0						= logLikelihood;
         //[DeltaML,Action,AlphaRoot,anyToDelete]     = fEBDeltaMLBmNeEN(Used,Unused,S_out,Q_out,Alpha,a,b);
 		fEBDeltaMLBmNeEN(DeltaML, Action, AlphaRoot,anyToDelete,Used, Unused, S_out, Q_out, Alpha,
 				a_Lambda,b_Alpha, N_used, N_unused,
-				&deltaLogMarginal,&nu);
+				&deltaLogMarginal,&nu,N);
+				
+		//printMat(Alpha,1,N_used);
 		//
         //deltaLogMarginal			= MLdelta;
         //nu							= -1;
@@ -481,15 +556,30 @@ void fEBBinaryMexBmNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
          //   }
         //}
         //
-        if(nu==-1)
+		if(selectedAction          == ACTION_TERMINATE && iniRemoved ==0 &&M>2)
+		{
+			nu = -1;
+			if(verbose>4)  Rprintf("************************** set to Remove the initial basis **************** \n");
+		}
+			
+		
+        if(nu==-1 && iniRemoved ==1)
 		{
 			anyWorthwhileAction     = 0;
 			selectedAction          = ACTION_TERMINATE;
+		}else if(nu==-1 &&iniRemoved ==0 && M>2) //remove initialized basis
+		{
+			if(verbose>4)  Rprintf("************************** Removing the initial basis **************** \n");
+			anyWorthwhileAction	= 1;
+			nu = initial-1;
+			Action[nu] = ACTION_DELETE;		
+			nUpdate = 1;	
+			nuAction[0]= initial - 1;
+			iniRemoved = 1;
+			selectedAction          = ACTION_DELETE;
 		}else
 		{
 			anyWorthwhileAction	= 1;
-			//Block Coordinate Ascent Algorithm Parameters;
-			// find a block to update;
 			if(Action[nu] == ACTION_ADD)
 			{
 				nAdd_real			= nAdd;				
@@ -515,6 +605,14 @@ void fEBBinaryMexBmNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
 				
 			}
 			if(Action[nu] == ACTION_DELETE && nUpdate>1) nUpdate = 1; // when deleting co-linear basis: delete one at a time
+if(nUpdate==0) anyWorthwhileAction=0;	
+		}
+if(anyWorthwhileAction==0)  selectedAction = ACTION_TERMINATE;	
+		if(anyWorthwhileAction	==1)
+		{
+			//Block Coordinate Ascent Algorithm Parameters;
+			// find a block to update;
+
 			//if(verbose >4) Rprintf("\t deltaML cutoff: %f ; number to be updated: %d \n",cutoff, nUpdate);
 			
 
@@ -561,7 +659,7 @@ void fEBBinaryMexBmNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
 					}*/
 				}
 				//newAlpha                    = AlphaRoot[nu];
-				if(anyWorthwhileAction==0)  selectedAction = ACTION_TERMINATE;
+				//if(anyWorthwhileAction==0)  selectedAction = ACTION_TERMINATE;
 				if(selectedAction==ACTION_REESTIMATE)
 				{
 					if (fabs(log(newAlpha)-log(Alpha[jj]))<=1e-3 && anyToDelete[0] ==0)
@@ -623,9 +721,10 @@ void fEBBinaryMexBmNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
 					
 //Rprintf("jj: %d, Alpha: %f;M: %d; \t Nused: %d\n",jj, Alpha[jj], M, N_used);
 					M = N_used + 1;
+					//printMat(SIGMA2,M,M);
 					UPDATE_REQUIRED = ActionDelBmNeEN(BASIS, Scales, PHI2, Alpha, SIGMA2, 
 											Mu2, S_in, Q_in, beta, jj, N, M, M_full);
-					
+					//printMat(SIGMA2,M,M);
 					index = N_used  -1;	
 					//
 				
@@ -641,6 +740,8 @@ void fEBBinaryMexBmNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
 					M						= m[0];
 					//UPDATE_REQUIRED			= 1;
 				//for(i=1;i<M;i++) Rprintf(" \t\t basis: %d :new weight: %f \n",Used[i-1],Mu2[i]);
+				//*********************************************************
+				if((nu+1)==initial) iniRemoved =1;
 				}
 				//Rprintf("\t\t Update_required: %d\n",UPDATE_REQUIRED);
 				//
@@ -652,20 +753,32 @@ void fEBBinaryMexBmNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
 				{
 					UPDATE_REQUIRED			=0;
 				}
-
+				
 				if(UPDATE_REQUIRED==1)
 				{
 					fEBCatFullStatBmNeEN(beta, SIGMA2, H2, S_in, Q_in, S_out, Q_out,  BASIS,Scales, PHI2, 
 					Targets, Used, Alpha, Mu2, basisCache,n, m, kdim);
 
 				}
+				//printMat(SIGMA2,M,M);
 			} // //end of for(iU)
 		}
 	
 		//Rprintf("\t\t selected Action: %d\n",selectedAction);
 		//
-        if(selectedAction==ACTION_TERMINATE) LAST_ITERATION =1;
-        if(i_iter==100)   LAST_ITERATION = 1;
+
+		
+        if(selectedAction==ACTION_TERMINATE && iniRemoved == 1) LAST_ITERATION =1;
+		if((i_iter==itMax && M==2) || i_iter>itMax) LAST_ITERATION =1;
+//*******************************************************************
+
+
+        if(i_iter==itMax )
+		{
+			selectedAction=ACTION_TERMINATE;
+			if(verbose>4) Rprintf("\t\t Reaching the maximum iteration\n");
+			
+		}
 		logLikelihood = 0;
 		for(i = 0;i<N;i++)
 		{
@@ -680,8 +793,12 @@ void fEBBinaryMexBmNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
 		}
 		dL							= fabs((logLikelihood - logL0)/logL0);
 		//Rprintf("\t\t likelihoodChange: %f\n",dL);
-		if(dL <1e-3) LAST_ITERATION = 1; 
-		//Rprintf("\t\t Last_iteration value: %d\n",LAST_ITERATION);
+		if(dL <1e-3 )
+		{
+			selectedAction=ACTION_TERMINATE;
+			//LAST_ITERATION = 1;
+			if(verbose>4) Rprintf("\t\t small global likelihood change.\n");		
+		}		//Rprintf("\t\t Last_iteration value: %d\n",LAST_ITERATION);
 
     }
 
@@ -719,7 +836,8 @@ int ActionAddBmNeEN( double* BASIS, double*scales, double*PHI, double*Phi,
 	int M1M1 = index*index;
 	double *SIGMANEW = (double *) Calloc(M1M1,double);
 	
-
+	//Rprintf("\t add basis %d, Alpha: %f, N:%d\tK:%d\tM:%d\tM_full:%d \tN_used:%d\tM1:%d\n",
+	//				nu,newAlpha,N,K,M,M_full,N_used,index);
 	
 	double *B_Phi		= (double *) Calloc(N,double);//beta.*Phi;
 	double *BASIS_B_PHI		= (double *) Calloc(M,double); //BASIS'*B*PHI: --> 1xM for one column of X in a K loop; total K x M
@@ -744,7 +862,7 @@ int ActionAddBmNeEN( double* BASIS, double*scales, double*PHI, double*Phi,
 	//B_Phi_lowcase       = Phi_lowcase.*beta;
 	//BASIS_B_Phi         = BASIS'*B_Phi;
 	//Rprintf("\t\t Inside ActionAddGmNeEN: index: %d\n",index);
-	
+
 	for(j=0;j<N;j++)		B_Phi[j]			= beta[j]*Phi[j]; //N   x 1
 	
 	
@@ -759,19 +877,19 @@ int ActionAddBmNeEN( double* BASIS, double*scales, double*PHI, double*Phi,
 		}
 		BASIS_B_Phi[i] 		= BASIS_B_Phi[i]/scales[i];
 		
-		/*if(i<K-1)
-		{
-			for (j					=(i+1);j<K;j++)
-			{
-				BASIS_Phi[kk]		= 0; 
-				for(h=0;h<N;h++)	BASIS_Phi[kk]	= BASIS_Phi[kk] + BASIS[j*N + h] *z[h];
-				BASIS_Phi[kk]		= BASIS_Phi[kk]/scales[kk];
-				BASIS_B_Phi[kk]		= beta[0]*BASIS_Phi[kk];
-				kk					= kk +1;
-			}
-		}*/
+		//if(i<K-1)
+		//{
+		//	for (j					=(i+1);j<K;j++)
+		//	{
+		//		BASIS_Phi[kk]		= 0; 
+		//		for(h=0;h<N;h++)	BASIS_Phi[kk]	= BASIS_Phi[kk] + BASIS[j*N + h] *z[h];
+		//		BASIS_Phi[kk]		= BASIS_Phi[kk]/scales[kk];
+		//		BASIS_B_Phi[kk]		= beta[0]*BASIS_Phi[kk];
+		//		kk					= kk +1;
+		//	}
+		//}
 	}
-	
+
 	
 	
 	//tmp						= ((B_Phi_lowcase'*PHI)*SIGMA)';				
@@ -868,6 +986,8 @@ int ActionAddBmNeEN( double* BASIS, double*scales, double*PHI, double*Phi,
 		Q_in[i]				= Q_in[i] - mu_i*mCi[i];
 	}
 
+
+	
 	int UPDATE_REQUIRED		= 1;
 	Free(B_Phi);
 	Free(BASIS_B_Phi);	
@@ -892,66 +1012,30 @@ int ActionDelBmNeEN(double* BASIS, double*scales,double*PHI, double*Alpha, doubl
  {
 	 int i,j;
 	int index				= M - 1;
-	//int N_used 				= M - 1;
+	//int N_used 			= M - 1;
 	int M1M1 				= (M-1)*(M-1);
-	//lapack
-	int inci =1;
-	int incj =1;
-	double *readPtr1, *readPtr2;
-	//lapack end
-	
-	
-	//
-	Alpha[jj]				= Alpha[index];           //Alpha: M -> M - 1
-    int j1  = jj + 1;        
-	//
-	//for(i=0;i<N;i++)		PHI[jj*N + i]		= PHI[index*N+i];		//M -> M -1
-	readPtr1 = &PHI[j1*N];
-	readPtr2 = &PHI[index*N];
-	F77_CALL(dcopy)(&N,readPtr2,&inci,readPtr1,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
-
-    int Mujj;        
-	Mujj					= Mu[j1];
-	for(i=0;i<M;i++)  Mu[i] = Mu[i] - Mujj*SIGMA[j1*M +i]/SIGMA[j1*M + j1];
-
-	//
-	Mu[j1]					= Mu[index];        
-	//------------------------------------------------------------------------------
-	//BLOCK MIGRATION OF SIGMANEW ------------------JUN142013 -------IN EBELASTICNET
-	double *tempSIGMA = (double *) Calloc((M*M),double);
-	double *SIGMANEW = (double *) Calloc(M1M1,double);
+	double *tempSIGMA 		= (double *) Calloc((M*M),double);
+	double *SIGMANEW 		= (double *) Calloc(M1M1,double);
 	double *z				= (double *) Calloc(N,double);
 	double *BASIS_B_PHI		= (double *) Calloc(M,double); //BASIS'*B*PHI: --> 1xM for one column of X in a K loop; total K x M
-	for(i=0;i<M;i++)
-	{
-		for(j=0;j<M;j++)	tempSIGMA[j*M + i]	= SIGMA[j*M + i] - SIGMA[j1*M+i]/SIGMA[j1*M+j1]*SIGMA[j1*M+j];
-	}
-	for(i=0;i<index;i++)
-	{
-		for(j=0;j<index;j++) SIGMANEW[j*index + i]	= tempSIGMA[j*M + i];
-	}
-	if(j1 != index)// incase the one to be deleted is the last column.
-	{
-	//step 1: last column
-	readPtr1 = &SIGMANEW[j1*index];
-	readPtr2 = &tempSIGMA[index*M];
-	F77_CALL(dcopy)(&index,readPtr2,&inci,readPtr1,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
-	//step 2: prepare for last row
-	tempSIGMA[j1*M + M-1] = tempSIGMA[M*M-1];
-
-	//last step 	
-	readPtr1 = &SIGMANEW[j1];
-	readPtr2 = &tempSIGMA[M-1];
-	F77_CALL(dcopy)(&index,readPtr2,&M,readPtr1,&index);  //dcopy(n, x, incx, y, incy) ---> y = x
-	}
-
-	//BLOCK MIGRATION OF SIGMANEW ------------------JUN142013 -------IN EBELASTICNET	
 	
-	//SIGMA = SIGMANEW;	
-	F77_CALL(dcopy)(&M1M1,SIGMANEW,&inci,SIGMA,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
-    //jPm         = (BASIS_B_PHI * s_j); 		BASIS'*B*PHI--> 1xM for one column of X in a K loop;
+//Rprintf("\t INSIDE DELETION FUNCTION\n");
+	//lapack
+	int inci 				=1;
+	int incj 				=1;
+	double *readPtr1, *readPtr2;
+	//lapack end	
+
+    int j1  				= jj + 1;
+	//PART 1. Mu;
+    double Mujj;        
+	Mujj					= Mu[j1];
+	for(i=0;i<M;i++)  Mu[i] = Mu[i] - Mujj*SIGMA[j1*M +i]/SIGMA[j1*M + j1];
+	//PART 2. S, Q
+	//jPm         = (BASIS_B_PHI * s_j); 		BASIS'*B*PHI--> 1xM for one column of X in a K loop;
     //S_in        = S_in + jPm.^2 / s_jj;
     //Q_in        = Q_in + jPm * mu_j / s_jj;
+	// By definition, PHI, SIGMA in calculating S_in,Q_in should be before removing jj.
 	double temp;
 	for(i=0;i<M_full;i++)
 	{
@@ -972,7 +1056,56 @@ int ActionDelBmNeEN(double* BASIS, double*scales,double*PHI, double*Alpha, doubl
 		Q_in[i]				= Q_in[i] +  temp *Mujj /SIGMA[j1*M + j1];
 		//jPm = beta*temp
 	}
+    //PART 3. SIGMA.
+    //tmp				= s_j/s_jj;
+    //SIGMANEW		= SIGMA - tmp*s_j'; = SIGMA - SIGMA[,jj]*SIGMA[,jj]'/SIGMA[jj,jj];
+    //SIGMANEW(j,:)	= [];
+    //SIGMANEW(:,j)	= [];
+	
+	//------------------------------------------------------------------------------
+	//BLOCK MIGRATION OF SIGMANEW ------------------JUN142013 -------IN EBELASTICNET
+	for(i=0;i<M;i++)
+	{
+		for(j=0;j<M;j++)	tempSIGMA[j*M + i]	= SIGMA[j*M + i] - SIGMA[j1*M+i]*SIGMA[j1*M+j]/SIGMA[j1*M+j1];
+	}
+	//printMat(tempSIGMA,M,M);
+	for(i=0;i<index;i++)
+	{
+		for(j=0;j<index;j++) SIGMANEW[j*index + i]	= tempSIGMA[j*M + i];
+	}
+	if(j1 != index)// incase the one to be deleted is the last column.
+	{
+		//
+		Alpha[jj]			= Alpha[index-1];           //Alpha: M -> M - 1
+		//
+		Mu[j1]				= Mu[index];    
+		//for(i=0;i<N;i++)		PHI[jj*N + i]		= PHI[index*N+i];		//M -> M -1
+		readPtr1 			= &PHI[j1*N];
+		readPtr2 			= &PHI[index*N];
+		F77_CALL(dcopy)(&N,readPtr2,&inci,readPtr1,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
+		
+		
+		//step 1: last column
+		readPtr1 			= &SIGMANEW[j1*index];
+		readPtr2 			= &tempSIGMA[index*M];
+		F77_CALL(dcopy)(&index,readPtr2,&inci,readPtr1,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
+		//step 2: prepare for last row
+		tempSIGMA[j1*M + M-1] = tempSIGMA[M*M-1];
 
+		//last step 	
+		readPtr1 = &SIGMANEW[j1];
+		readPtr2 = &tempSIGMA[M-1];
+		F77_CALL(dcopy)(&index,readPtr2,&M,readPtr1,&index);  //dcopy(n, x, incx, y, incy) ---> y = x
+	}
+
+	//BLOCK MIGRATION OF SIGMANEW ------------------JUN142013 -------IN EBELASTICNET	
+
+	//After removing jj, PHI: N x (M-1)
+		//SIGMA: (M-1)*(M-1)
+	
+	//SIGMA = SIGMANEW;	
+	F77_CALL(dcopy)(&M1M1,SIGMANEW,&inci,SIGMA,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
+    
 	//BASIS_PHI(:,jj) = [];
 	//for(i=0;i<M_full;i++) BASIS_PHI[jj*M_full + i]	= BASIS_PHI[index*M_full+i];
 	//readPtr1 = &BASIS_PHI[jj*M_full];
@@ -1113,6 +1246,9 @@ void fEBInitializationBmNeEN(double *Alpha, double * PHI2, int *Used, int *Unuse
 		int incj = 1;
 		double *readPtr1;
 		double scal;
+		//*********************************************************************
+		//double *project   	= (double *) Calloc(K,double);
+		//const double 	nAdd 				= 0.9; 
 		
         TargetPseudo		= (double *) Calloc(N,double);
         //for(i=0;i<N;i++)            TargetPseudo[i]     = 2*Targets[i] -1;
@@ -1133,14 +1269,40 @@ void fEBInitializationBmNeEN(double *Alpha, double * PHI2, int *Used, int *Unuse
 			proj = F77_CALL(ddot)(&N, readPtr1, &inci,TargetPseudo, &incj);
 			
             proj			= proj/Scales[i];
+			//*********************************************************************
+			//project[i] 		= fabs(proj);
             if(fabs(proj) < fabs(proj_ini))
             {
-                proj_ini    = proj;
+                proj_ini    = fabs(proj);
                 loc1        = i;
                 //loc2        = i;
                 Used[0]		= i + 1;
             }
         }
+		//*********************************************************************		
+		//printMat(project,1,K);
+		/*
+		double cutoff = proj_ini * nAdd;
+		for(i=0;i<K;i++)
+		{
+			if(project[i] >=cutoff) 	project[i] = 0;
+			
+		}
+		proj_ini = 0;
+		for(i=0;i<K;i++)
+        {
+		
+            proj			= project[i];
+            if(fabs(proj) > fabs(proj_ini))
+            {
+                proj_ini    = fabs(proj);
+                loc1        = i;
+                //loc2        = i;
+                Used[0]		= i + 1;
+            }
+        }
+		*/
+		//printMat(project,1,K);
         /*for(i=0;i< (K - 1);i++)
         {
             for(j= (i+ 1); j<K; j++)
@@ -1174,22 +1336,22 @@ void fEBInitializationBmNeEN(double *Alpha, double * PHI2, int *Used, int *Unuse
         //
         double * PHI;
         PHI						= (double *) Calloc(N,double);
-        //if(loc1==loc2)
-        //{
-            //for(i=0;i<N;i++)
-            //{
-            //    PHI[i]			= BASIS[loc1*N+i]/Scales[loc1];
-			//      PHI2[N+i]		= PHI[i];
-			//		PHIqr[N+i]		= PHI[i];
-            //}
-			readPtr1 = &BASIS[loc1*N];
-			F77_CALL(dcopy)(&N,readPtr1,&inci,PHI,&incj);
-			scal = 1/(double)Scales[loc1];
-			F77_CALL(dscal)(&N,&scal, PHI,&inci);
-			readPtr1 = &PHI2[N];
-			F77_CALL(dcopy)(&N,PHI,&inci,readPtr1,&incj);
-			readPtr1 = &PHIqr[N];
-			F77_CALL(dcopy)(&N,PHI,&inci,readPtr1,&incj);
+        /*if(loc1==loc2)
+        {
+            for(i=0;i<N;i++)
+            {
+                PHI[i]			= BASIS[loc1*N+i]/Scales[loc1];
+			      PHI2[N+i]		= PHI[i];
+					PHIqr[N+i]		= PHI[i];
+            }*/
+		readPtr1 = &BASIS[loc1*N];
+		F77_CALL(dcopy)(&N,readPtr1,&inci,PHI,&incj);
+		scal = 1/(double)Scales[loc1];
+		F77_CALL(dscal)(&N,&scal, PHI,&inci);
+		readPtr1 = &PHI2[N];
+		F77_CALL(dcopy)(&N,PHI,&inci,readPtr1,&incj);
+		readPtr1 = &PHIqr[N];
+		F77_CALL(dcopy)(&N,PHI,&inci,readPtr1,&incj);
 			
         /*}else
         {
@@ -1213,7 +1375,190 @@ void fEBInitializationBmNeEN(double *Alpha, double * PHI2, int *Used, int *Unuse
         if(Alpha[0]< init_alpha_min) Alpha[0]				= init_alpha_min;
         if(Alpha[0]> init_alpha_max) Alpha[0]				= init_alpha_max;
 		
+		//Free(project);
+		Free(TargetPseudo);
+		Free(PHIqr);
+		Free(PHI);
+		Free(logout);
 		
+		
+	}
+
+	int IsUsed			= 0;
+    kk                  = 0;
+    for(i=0;i<M_full;i++)
+    {
+        IsUsed          = 0;
+        for(j=0;j<N_used;j++)
+        {
+            //index   = Used[j];
+            if ((i+1)==Used[j])     IsUsed  = 1;
+        }
+        if(IsUsed==0)     
+        {
+            Unused[kk]  = (i+ 1);
+            kk          = kk + 1;
+        }
+    }
+	
+	
+	
+}
+
+
+
+
+
+
+void fEBInitializationBmNeEN2(double *Alpha, double * PHI2, int *Used, int *Unused, double *Mu2,
+				double *BASIS, double *Targets, double *Scales, int * initial, int N, int *m, int K)
+{
+    //basis dimension
+    int M,M_full,N_used,i,j,kk;
+  	
+    //M_full				= K*(K+1)/2;
+	M_full					= K;
+	int IniLogic			= *initial;
+    //INPUT
+    if(IniLogic==0)							// is empty
+    {
+		m[0]				= 2;
+		M					= m[0];
+        N_used				= 1;
+    }else									// not empty
+    {
+       	N_used              = m[0]-1;
+		M					= m[0];
+    }
+    //output
+    const double init_alpha_max     = 1e3;
+    const double init_alpha_min     = 1e-3;    
+    
+	if(IniLogic==0)            // is empty
+    {
+		//Rprintf("\t Inside Initialization, M: %d, K: %d\n",M, K);
+        double *TargetPseudo,proj_ini,proj;
+        int loc1 = 0;
+		//int loc2 = 0;
+		int inci =1;
+		int incj = 1;
+		double *readPtr1;
+		double scal;
+		//*********************************************************************
+		double *project   	= (double *) Calloc(K,double);
+		const double 	nAdd 				= 0.9; 
+		
+        TargetPseudo		= (double *) Calloc(N,double);
+        //for(i=0;i<N;i++)            TargetPseudo[i]     = 2*Targets[i] -1;
+		scal = -1;
+		F77_CALL(dcopy)(&N,&scal,&loc1,TargetPseudo,&inci);
+		scal = 2;
+		F77_CALL(daxpy)(&N, &scal,Targets, &inci,TargetPseudo, &incj);
+		
+        //kk					= K;
+        proj_ini			= 0;
+		Used[0]				= 1;
+        for(i=0;i<K;i++)
+        {
+
+         	//proj			= 0;
+            //for(j=0;j<N;j++)                proj    = proj + BASIS[i*N+j]*TargetPseudo[j];
+			readPtr1 = &BASIS[i*N];
+			proj = F77_CALL(ddot)(&N, readPtr1, &inci,TargetPseudo, &incj);
+			
+            proj			= proj/Scales[i];
+			//*********************************************************************
+			project[i] 		= fabs(proj);
+            if(fabs(proj) > fabs(proj_ini))
+            {
+                proj_ini    = fabs(proj);
+                loc1        = i;
+                //loc2        = i;
+                Used[0]		= i + 1;
+            }
+        }
+		//*********************************************************************		
+		//printMat(project,1,K);
+		
+		double cutoff = proj_ini * nAdd;
+		for(i=0;i<K;i++)
+		{
+			if(project[i] >=cutoff) 	project[i] = 0;
+			
+		}
+		proj_ini = 0;
+		for(i=0;i<K;i++)
+        {
+		
+            proj			= project[i];
+            if(fabs(proj) > fabs(proj_ini))
+            {
+                proj_ini    = fabs(proj);
+                loc1        = i;
+                //loc2        = i;
+                Used[0]		= i + 1;
+            }
+        }
+		
+		//printMat(project,1,K);
+        /*for(i=0;i< (K - 1);i++)
+        {
+            for(j= (i+ 1); j<K; j++)
+            {
+                proj			= 0;
+                for(k=0;k<N;k++)            proj    = proj + BASIS[i*N+k]*BASIS[j*N+k]*TargetPseudo[k];
+                proj            = proj/Scales[kk];
+                if(fabs(proj) > fabs(proj_ini))
+                {
+                    proj_ini    = proj;
+                    loc1        = i;
+                    loc2        = j;
+                    Used[0]		= kk  + 1;
+                }
+                kk              = kk + 1;
+            }
+        }*/
+        //PHI2, duplicate for linear solver
+		double *PHIqr;
+		PHIqr					= (double *) Calloc(N*M,double);
+		scal = 1;
+		i = 0;
+		F77_CALL(dcopy)(&N,&scal,&i,PHI2,&inci);
+		F77_CALL(dcopy)(&N,&scal,&i,PHIqr,&inci);
+     	//for(i=0;i<N;i++)		
+		//{
+		//	PHI2[i]         = 1;
+		//	PHIqr[i]		= 1;
+		//}
+        
+        //
+        double * PHI;
+        PHI						= (double *) Calloc(N,double);
+
+		
+			readPtr1 = &BASIS[loc1*N];
+			F77_CALL(dcopy)(&N,readPtr1,&inci,PHI,&incj);
+			scal = 1/(double)Scales[loc1];
+			F77_CALL(dscal)(&N,&scal, PHI,&inci);
+			readPtr1 = &PHI2[N];
+			F77_CALL(dcopy)(&N,PHI,&inci,readPtr1,&incj);
+			readPtr1 = &PHIqr[N];
+			F77_CALL(dcopy)(&N,PHI,&inci,readPtr1,&incj);
+			
+
+		double *logout;
+        logout                      = (double *) Calloc(N,double);
+        for (i=0;i<N;i++)            logout[i]               = log(((TargetPseudo[i] * 0.9 + 1)/2)/(1-(TargetPseudo[i] * 0.9 + 1)/2));
+		// Call function
+		LinearSolverBmNeEN(PHIqr, logout, N, M, Mu2);
+
+        if(Mu2[1] == 0) Alpha[0] 	= 1;
+        else            Alpha[0]    = 1/(Mu2[1]*Mu2[1]);
+		//Alpha[0] 		= 8.6102;
+        if(Alpha[0]< init_alpha_min) Alpha[0]				= init_alpha_min;
+        if(Alpha[0]> init_alpha_max) Alpha[0]				= init_alpha_max;
+		
+		Free(project);
 		Free(TargetPseudo);
 		Free(PHIqr);
 		Free(PHI);
@@ -1532,7 +1877,9 @@ void fEBCatPostModeBmNeEN(double * Mu2, double *beta,double *SIGMA2, double * H2
 		g0 = F77_CALL(ddot)(&N, &scal, &inc0,e, &incj); 
 		for(j = 0;j<N;j++)
         {
-            beta[j]				= (y[j])*(1-y[j]);
+            beta[j]				= (y[j])*(1-y[j]); //exact 0 means separation: result in infinite values;
+			if(beta[j]<1e-10) beta[j] = 1e-5;
+			if(beta[j]>1e10) beta[j] = 1e5;
         }
 		h0 = F77_CALL(ddot)(&N, &scal, &inc0,beta, &incj);
 
@@ -1690,6 +2037,7 @@ void MatrixInverseBmNeEN(double * a,int N)
 {
 	const char uplo			= 'U';
 	int info				= 0;
+	
 	//*************************Call LAPACK library ************************
 	F77_CALL(dpotrf)(&uplo, &N,a, &N,&info);
 	if(info!=0) 	
@@ -1698,7 +2046,7 @@ void MatrixInverseBmNeEN(double * a,int N)
 		return;
 	}
 	F77_CALL(dpotri)(&uplo,&N,a,&N,&info);
-		if(info!=0) 	
+	if(info!=0) 	
 	{
 		Rprintf("Call 2nd function dpotri error!\n");
 		return;
@@ -1715,7 +2063,7 @@ void MatrixInverseBmNeEN(double * a,int N)
 void fEBDeltaMLBmNeEN(double *DeltaML, int *Action, double *AlphaRoot, int *anyToDelete,
 				int *Used, int * Unused, double * S_out, double * Q_out, double *Alpha,
 				double *a_lambda, double *b_Alpha, int N_used, int N_unused,
-				double *deltaLogMarginal, int *nu)
+				double *deltaLogMarginal, int *nu,int N)
 {
     //basis dimension
     int M_full,i,index;
@@ -1732,11 +2080,23 @@ anyToDelete[0] = 0;
 	lambda1 							= *a_lambda * (b_Alpha[0]);
 	lambda2 							= *a_lambda * (1 - b_Alpha[0]);
     //int   anyToDelete					= 0;
-    //int   anyToAdd						= 0;
+    int   anyToAdd						= 0;
     //const int CNPriorityAddition		= 0;
     //const int CNPriorityDeletion		= 1;
 	//Rprintf("Inside fEBDeltaMLBmNeEN: a: %f, b %f \n",a, b);
-	
+	int CNPriorityAddition		= 0;
+	int CNPriorityDeletion		= 0;		
+	if(N_used<10)
+	{
+		CNPriorityAddition		= 1;
+		CNPriorityDeletion		= 0;
+		//Rprintf("Inside fEBDeltaMLBmNeEN: a: %f, b %f \n",a, b);
+	}
+	if(N_used>100 || N_used >=N)
+	{
+		CNPriorityAddition		= 0;
+		CNPriorityDeletion		= 1;
+	}	
 	//Block Coordinate Ascent Algorithm Parameters;
 	for(i=0;i<M_full;i++) Action[i] = -10;
 	double deltaMLmax = 0;
@@ -1846,11 +2206,7 @@ anyToDelete[0] = 0;
 	//		if(Action[i] !=selectedAction) DeltaML[i] = 0;
 	//	}
 	
-deltaLogMarginal[0] = deltaMLmax;
-nu[0] 	= max;
-    
-	/*
-    if((anyToAdd==1 && CNPriorityAddition==1) || (anyToDelete[0]==1 && CNPriorityDeletion==1))
+   if((anyToAdd==1 && CNPriorityAddition==1) || (anyToDelete[0]==1 && CNPriorityDeletion==1))
     {
         for(i=0;i<M_full;i++)
         {
@@ -1863,7 +2219,24 @@ nu[0] 	= max;
                     if(anyToDelete[0] ==1 && CNPriorityDeletion==1 && CNPriorityAddition!=1) DeltaML[i] = 0;
             }
         }
+		
+		deltaMLmax = 0;
+		max = 0;		
+		for(i=0;i<M_full;i++)
+		{	
+			if(DeltaML[i]>deltaMLmax)
+			{
+					max			= i;
+					deltaMLmax 	= DeltaML[i];
+			} 	
+		}	
+		
     }  
 
-	*/
+deltaLogMarginal[0] = deltaMLmax;
+nu[0] 	= max; 
 }
+
+
+
+

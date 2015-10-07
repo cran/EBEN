@@ -41,7 +41,9 @@ data(yBinomial)
 #reduce sample size to speed up the running time
 n = 50;
 k = 100;
-BASIS = BASISbinomial[1:n,1:k];
-y  = yBinomial[1:n];
-output = EBelasticNet.Binomial(BASIS, y,lambda = 1,alpha = 0.5, Epis = "no",verbose = 0)
+N = length(yBinomial);
+set  = sample(N,n);
+BASIS = BASISbinomial[set,1:k];
+y  = yBinomial[set];
+output = EBelasticNet.Binomial(BASIS, y,lambda = 0.1,alpha = 0.5, Epis = "no",verbose = 5)
 }

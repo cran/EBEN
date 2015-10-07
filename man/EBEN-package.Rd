@@ -22,15 +22,14 @@
 \tabular{ll}{
 Package: \tab EBEN\cr
 Type: \tab Package\cr
-Version: \tab 4.1\cr
-Date: \tab 2015-05-26\cr
+Version: \tab 4.6\cr
+Date: \tab 2015-10-06\cr
 License: \tab gpl\cr
 }
 
 }
 \author{
 Anhui Huang
-Maintainer: Anhui Huang <a.huang1@umiami.edu>
 }
 \references{
 key algorithms: \cr

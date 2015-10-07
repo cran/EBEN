@@ -15,10 +15,12 @@ function(BASIS,Target,nFolds,Epis="no",foldId = 0)
 	}
 	}
 	lambda_Max			= log(1.1);
+	response 			= Target-mean(Target);
+	response 			= response/sqrt(sum(response*response));
 	for(i_b in 1:K){
 		basis 			= BASIS[,i_b];
 		basis 			= basis/sqrt(sum(basis*basis));
-		corBy 			= basis%*%(Target-mean(Target));
+		corBy 			= basis%*%response;
 		if(corBy>lambda_Max) lambda_Max = corBy;
 	}	
 	if(Epis == "yes"){
@@ -31,14 +33,15 @@ function(BASIS,Target,nFolds,Epis="no",foldId = 0)
 			}
 		}		
 	}
-	lambda_Max 			= lambda_Max;
-	lambda_Min 			= log(0.0001*lambda_Max);
-	step 				= (log(lambda_Max) - lambda_Min)/9;
+	lambda_Max 			= lambda_Max*10;
+	lambda_Min 			= log(0.001*lambda_Max);
+	step 				= (log(lambda_Max) - lambda_Min)/19;
 	Lambda 				= exp(seq(from = log(lambda_Max),to=lambda_Min,by= -step))
 	N_step 				= length(Lambda);
 
 	step 				= 1;
-	Alpha 				= seq(from = 1, to = 0.05, by = -0.1)
+	Alpha 				= seq(from = 1, to = 0.05, by = -0.05)
+	#Alpha = 0.05;
 	nAlpha 				= length(Alpha);
 		
 	MSEcv 				= mat.or.vec((N_step*nAlpha),4);

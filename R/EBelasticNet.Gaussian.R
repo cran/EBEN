@@ -6,7 +6,8 @@ function(BASIS,Target,lambda,alpha,Epis = "no",verbose = 0 ){
 	if(Epis == "yes"){
 		N_effect 		= (K+1)*K/2;
 #-----------------------------------------
-		Beta 			= rep(0,N_effect *5);
+		blupCol 		=5;
+		Beta 			= rep(0,N_effect *blupCol);
 #-----------------------------------------	
 
 
@@ -30,7 +31,8 @@ function(BASIS,Target,lambda,alpha,Epis = "no",verbose = 0 ){
 
 	}else {
 		N_effect 		= K;
-		Beta 			= rep(0,N_effect *4);
+		blupCol =4;
+		Beta 			= rep(0,N_effect *blupCol);
 
 #		dyn.load("fEBLinearNeMainEff.so")
 
@@ -52,27 +54,27 @@ function(BASIS,Target,lambda,alpha,Epis = "no",verbose = 0 ){
 	}		
 #-------------------------------------------------------------------
 	if(Epis == "yes"){	
-		result 			= matrix(output$Beta,N_effect,5); #5th column: Used.
+		result 			= matrix(output$Beta,N_effect,blupCol); #5th column: Used.
 		ToKeep 			= which(result[,5]!=0);	
 	}else
 	{
-		result 			= matrix(output$Beta,N_effect,4);
+		result 			= matrix(output$Beta,N_effect,blupCol);
 		ToKeep 			= which(result[,3]!=0);
 	}
-	if(length(ToKeep)==0) { Blup = matrix(0,1,4)
+	if(length(ToKeep)==0) { Blup = matrix(0,1,blupCol); 
 	}else
 	{
 		nEff 	= length(ToKeep);
-		Blup 		= matrix(result[ToKeep,],nEff,4);
+		Blup 		= matrix(result[ToKeep,],nEff,blupCol);#doesn't matter if blupCol=4: in R, if columns is small, only keep the first blupCol columns.
 	}
 	if(Epis == "yes"){
 		blupMain 		= Blup[Blup[,1] ==Blup[,2],];
-		nMain 			= length(blupMain)/4;
-		blupMain 		= matrix(blupMain,nMain,4);
+		nMain 			= length(blupMain)/blupCol;
+		blupMain 		= matrix(blupMain,nMain,blupCol);
 		#
 		blupEpis 		= Blup[Blup[,1] !=Blup[,2],];
-		nEpis 			= length(blupEpis)/4;
-		blupEpis 		= matrix(blupEpis,nEpis,4);
+		nEpis 			= length(blupEpis)/blupCol;
+		blupEpis 		= matrix(blupEpis,nEpis,blupCol);
 		
 		order1 			= order(blupMain[,1]);
 		order2 			= order(blupEpis[,1]);
