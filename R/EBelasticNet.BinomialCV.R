@@ -1,4 +1,6 @@
-EBelasticNet.BinomialCV <- function(BASIS,Target,nFolds,Epis="no",foldId = 0)
+EBelasticNet.BinomialCV <- function(BASIS,Target,nFolds,
+                                    Epis="no",foldId = 0,
+                                    score = "brier")
 {
   
   cat("EB-Elastic Net Linear Model, Epis: ",Epis, ";", nFolds, "fold cross-validation\n");
@@ -80,7 +82,11 @@ EBelasticNet.BinomialCV <- function(BASIS,Target,nFolds,Epis="no",foldId = 0)
           }
           
           temp 		= exp(Mu0 + basisTest%*%Mu);
-          logL[i] 	= mean(Target.Test*log(temp/(1+temp)) + (1-Target.Test)*log(1/(1+temp)));
+          if (score == "brier") {
+            logL[i] = mean((temp - Target.Test)^2)
+          } else {
+            logL[i] 	= mean(Target.Test*log(temp/(1+temp)) + (1-Target.Test)*log(1/(1+temp))); 
+          }
         }
         
       }
@@ -89,7 +95,11 @@ EBelasticNet.BinomialCV <- function(BASIS,Target,nFolds,Epis="no",foldId = 0)
     }
     
   }
-  index 				= which.max(Likelihood[,3]);
+  if (score == "brier") {
+    index = which.min(Likelihood[,3]);
+  } else {
+    index 				= which.max(Likelihood[,3]);
+  }
   Res.lambda			= Likelihood[index,2];
   Res.alpha 			= Likelihood[index,1];
   result 				<- list(Likelihood,Res.alpha,Res.lambda);
