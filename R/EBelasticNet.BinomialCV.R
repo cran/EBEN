@@ -32,12 +32,12 @@ EBelasticNet.BinomialCV <- function(BASIS,Target,nFolds,Epis="no",foldId = 0)
     }		
   }
   lambda_Max 		= lambda_Max*10;
-  Lambda 				= c(1, 0.5, 0.25, 0.1, 0.05, 0.01)*lambda_Max;
+  Lambda 				= c(1, 0.75, 0.5, 0.25, 0.1, 0.05, 0.01, 0.005)*lambda_Max;
   Lambda = Lambda[Lambda > 0.1]
   N_step 				= length(Lambda);
   
   step 				= 1;
-  Alpha 				= seq(from = 1, to = 0.05, by = -0.2)
+  Alpha 				= seq(from = 1, to = 0.05, by = -0.1)
   nAlpha 				= length(Alpha);
   
   Likelihood 			= mat.or.vec((N_step*nAlpha),4);
