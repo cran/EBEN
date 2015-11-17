@@ -1,6 +1,8 @@
 EBelasticNet.BinomialCV <- function(BASIS,Target,nFolds,
                                     Epis="no",foldId = 0,
-                                    score = "brier")
+                                    score = "brier",
+                                    lambda_values= 
+                                      c(5, 2.5, 1, 0.75, 0.5, 0.25, 0.1))
 {
   
   cat("EB-Elastic Net Linear Model, Epis: ",Epis, ";", nFolds, "fold cross-validation\n");
@@ -34,7 +36,7 @@ EBelasticNet.BinomialCV <- function(BASIS,Target,nFolds,
     }		
   }
   lambda_Max 		= lambda_Max*10;
-  Lambda 				= c(c(1, 0.5)*lambda_Max, 1, 0.75, 0.5, 0.25, 0.1);
+  Lambda 				= c(c(1, 0.5)*lambda_Max, lambda_values);
   N_step 				= length(Lambda);
   
   step 				= 1;
