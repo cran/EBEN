@@ -5,17 +5,18 @@
 \description{Hyperparameter controls degree of shrinkage, and is obtained via Cross Validation (CV). This program calculates the maximum lambda
 			that allows one non-zero basis; and performs a search down to 0.001*lambda_max at even steps. (20 steps)}
 \usage{
-EBelasticNet.BinomialCV(BASIS, Target, nFolds, Epis = "no",foldId)
+EBelasticNet.BinomialCV(BASIS, Target, nFolds,foldId, Epis = FALSE, verbose = 0)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{BASIS}{sample matrix; rows correspond to samples, columns correspond to features}
   \item{Target}{Class label of each individual, TAKES VALUES OF 0 OR 1}
   \item{nFolds}{number of n-fold cv}
-  \item{Epis}{"yes" or "no" for including two-way interactions}
+  \item{Epis}{TRUE or FALSE for including two-way interactions}
   \item{foldId}{random assign samples to different folds}
+  \item{verbose}{from 0 to 5; larger verbose displays more messages}
 }
-\details{If Epis="yes", the program adds two-way interaction K*(K-1)/2 more columns to BASIS}
+\details{If Epis=TRUE, the program adds two-way interaction K*(K-1)/2 more columns to BASIS}
 \value{
   \item{CrossValidation}{col1: hyperparameter; col2: loglikelihood mean; standard ERROR of nfold mean log likelihood}
   \item{Lmabda_optimal}{the optimal hyperparameter as computed}
@@ -30,6 +31,7 @@ EBelasticNet.BinomialCV(BASIS, Target, nFolds, Epis = "no",foldId)
 
 
 \examples{
+## not run
 library(EBEN)
 data(BASISbinomial)
 data(yBinomial)
@@ -42,8 +44,9 @@ set  = sample(N,n);
 BASIS = BASISbinomial[set,1:k];
 y  = yBinomial[set];
 nFolds = 3
-CV = EBelasticNet.BinomialCV(BASIS, y, nFolds = 3,Epis = "no")
-
+\dontrun{
+CV = EBelasticNet.BinomialCV(BASIS, y, nFolds = 3,Epis = FALSE)
+}
 
 
 }

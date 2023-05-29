@@ -15,62 +15,79 @@
 # define FCONE
 #endif
 
-//G: gauss; m:main; Ne: normal exp
-void LinearSolverGmNeEN(double * a, double *logout, int N,int M,double *output);
-void fEBInitializationGmNeEN(double *Alpha, double * PHI, int *Used, int *Unused,
+//G: gauss; m:main; Neg: normal exp gamma
+
+
+void LinearSolverGmNeg(double * a, double *logout, int N,int M,double *output);
+void fEBInitializationGmNeg(double *Alpha, double * PHI, int *Used, int *Unused,
 				double *BASIS, double *Targets, double *Scales, int * initial,
 				int n, int *m, int kdim, double *beta);
 
-void MatrixInverseGmNeEN(double * a,int N);
-void CacheBPGmNeEN(double **BASIS_PHI, double *BASIS_Targets, double *BASIS, double *PHI,
+void MatrixInverseGmNeg(double * a,int N);
+void CacheBPGmNeg(double *BASIS_PHI, double *BASIS_Targets, double *BASIS, double *PHI,
 				double *Targets,double *scales,int N,int K,int M, int M_full);
 
-void fEBLinearFullStatGmNeEN(double *beta,double * SIGMA,double *H, double *S_in, double * Q_in, double * S_out,
-				double * Q_out,  double *BASIS, double * Scales, double *PHI, double **BASIS_PHI,
+void fEBLinearFullStatGmNeg(double *beta,double * SIGMA,double *H, double *S_in, double * Q_in, double * S_out,
+				double * Q_out,  double *BASIS, double * Scales, double *PHI, double *BASIS_PHI,
 				double *BASIS_Targets, double * Targets, int * Used, double *Alpha, double * Mu,
 				 double *Gamma,int *n, int *m, int* kdim, int *iteration,int *i_iter);
 
-void fEBDeltaMLGmNeEN(double *DeltaML, int *Action, double *AlphaRoot, int *anyToDelete,
+void fEBDeltaMLGmNeg(double *DeltaML, int *Action, double *AlphaRoot, int *anyToDelete,
 				int *Used, int * Unused, double * S_out, double * Q_out, double *Alpha,
-				double *a_lmabda, double *b_Alpha,
-				int m, int mBar);
+				double *a_gamma, double *b_gamma, int m, int mBar);
 
-void LinearFastEmpBayesGmNeEN(int *Used, double *Mu, double *SIGMA, double *H, double *Alpha, double *PHI,
-				double *BASIS, double * Targets, double *Scales, double *a_lambda,double *b_Alpha,
-				int *iteration, int *n, int *kdim, int *m, int basisMax, double *b, double *beta,double * C_inv,
-				int verbose);
 
-int ActionAddGmNeEN(double **BASIS_PHI, double* BASIS, double*scales, double*PHI, double*Phi,
+void LinearFastEmpBayesGmNeg(int *Used, double *Mu, double *SIGMA, double *H, double *Alpha, double *PHI,
+				double *BASIS, double * Targets, double *Scales, double *a_gamma, double *b_gamma,
+				int *iteration, int *n, int *kdim, int *m, int basisMax, double *b, double *beta,double * C_inv,int verbose);
+
+
+
+int ActionAddGmNeg(double *BASIS_PHI, double* BASIS, double*scales, double*PHI, double*Phi,
 			double *beta, double* Alpha, double newAlpha, double*SIGMA, double*Mu, double*S_in,
 			double*Q_in, int nu, double*SIGMANEW, int M_full, int N, int K, int M);
 
 
-int ActionDelGmNeEN(double*PHI, double*Alpha, double*SIGMA, double*SIGMANEW, double**BASIS_PHI,
+int ActionDelGmNeg(double*PHI, double*Alpha, double*SIGMA, double*SIGMANEW, double*BASIS_PHI,
 				double*Mu, double*S_in, double*Q_in, double *beta, int jj, int N, int M, int M_full);
 
-double varTargetsGmNeEN(double* Target,int N);
+double varTargetsGmNeg(double* Target,int N);
 
-void FinalUpdateGmNeEN(double *PHI,double * H,double*SIGMA,double *Targets,double *Mu,double *Alpha,
+void FinalUpdateGmNeg(double *PHI,double * H,double*SIGMA,double *Targets,double *Mu,double *Alpha,
 				double *beta,int N, int M);
-
+void printMat(double *a, int M, int N) //MxN
+{
+	int i,j;
+	Rprintf("Printing the matrix\n\n");
+	for(i=0;i<M;i++)
+	{
+		for(j=0;j<N;j++)
+		{
+			Rprintf("%f\t", a[j*M +i]); //a[i,j]
+		}
+		Rprintf("\n");
+	}
+}
 //
-void elasticNetLinearNeMainEff(double *BASIS, double *y, double *a_lambda, double *b_Alpha,
-				double *Beta,
-				double *wald, double *intercept, int *n, int *kdim, int *verb,double *residual)
+void fEBLinearMainEff(double *BASIS, double *y, double *a_gamma, double *b_gamma,double *Beta,
+				double *wald, double *intercept, int *n, int *kdim,int *VB,double *residual)
 {
 	int N					= *n;
 	int K					= *kdim;
-	int verbose 				= *verb;
-	//int M_full				= (K+1)*K/2;
-	int M_full = K;
+	int verbose 			= VB[0];
+	//int M_full			= (K+1)*K/2;
+	int M_full 				= K;
 	const int iter_max		= 50;
 	const double err_max	= 1e-8;
 	// set a limit for number of basis
-
-	int basisMax			= 1e7/M_full;
+	if(verbose >1) Rprintf("start EBLasso with a: %f, \tb: %f\n",a_gamma[0], b_gamma[0]);
+	//int basisMax			= 5e7/M_full;
+//-----------------------------------------------------------realData
+	int basisMax			= 1000;
+//-----------------------------------------------------------realData
 	if (basisMax>M_full)	basisMax = M_full;
-	if(verbose>0) Rprintf("basisMax: %d",basisMax);
-	if(verbose >1) Rprintf("start EB-elasticNet with alpha: %f, lambda: %f\n",*b_Alpha, *a_lambda);
+	//if(verbose >1) Rprintf("basisMax: %d",basisMax);
+	//if(verbose >1) Rprintf("start EBLasso-NEG with a: %f, b: %f\n",*a_gamma, *b_gamma);
 	double vk				= 1e-30;
 	double vk0				= 1e-30;
 	double temp				= 0;
@@ -90,8 +107,6 @@ void elasticNetLinearNeMainEff(double *BASIS, double *y, double *a_lambda, doubl
 	{
 		Beta[i]				= i + 1;
 		Beta[M_full + i]	= i + 1;
-		//Beta[M_full*2 + i]	= 0;
-		//Beta[M_full*3 + i]	= 0;
 		temp				= 0;
 		//for(l=0;l<N;l++)	temp		= temp + BASIS[i*N + l]*BASIS[i*N + l];
 		readPtr1  			= &BASIS[i*N];
@@ -99,28 +114,13 @@ void elasticNetLinearNeMainEff(double *BASIS, double *y, double *a_lambda, doubl
 		if(temp ==0) temp	= 1;
 		Scales[i]			=sqrt(temp);
 	}
+
 	readPtr1 				= &Beta[K*2];
 	F77_CALL(dcopy)(&K,&zero_blas,&inc0,readPtr1,&inci);  //dcopy(n, x, incx, y, incy) ---> y = x
 	readPtr1 				= &Beta[K*3];
 	F77_CALL(dcopy)(&K,&zero_blas,&inc0,readPtr1,&inci);  //dcopy(n, x, incx, y, incy) ---> y = x
 
 	//PartII kk
-	//kk						= K;					//index starts at 0;
-	/*for (i					=0;i<(K-1);i++)
-	{
-		for (j				=(i+1);j<K;j++)
-		{
-			Beta[kk]			= i + 1;
-			Beta[M_full + kk]	= j + 1;
-			Beta[M_full*2 + kk] = 0;
-			Beta[M_full*3 + kk] = 0;
-			temp				= 0;
-			for(l=0;l<N;l++) 	temp		= temp + BASIS[i*N + l]*BASIS[i*N + l]*BASIS[j*N + l]*BASIS[j*N + l];
-			if (temp == 0)		temp		= 1;
-			Scales[kk]			=sqrt(temp);
-			kk					= kk + 1;
-		}
-	}*/
 
 	//
 	int iter				= 0;
@@ -138,8 +138,8 @@ void elasticNetLinearNeMainEff(double *BASIS, double *y, double *a_lambda, doubl
 	iteration				= (int* ) Calloc(1, int);
 	m						= (int* ) Calloc(1, int);
 	C_inv					= (double * ) Calloc(N*N, double);
-	if(verbose>0) Rprintf("outer loop starts");
-	m[0]			= 1;
+	if(verbose >1) Rprintf("outer loop starts");
+	m[0]			 		= 1;
 	int M					= m[0];
 	//Fixed Effect
 	double b				= 0;
@@ -161,44 +161,44 @@ void elasticNetLinearNeMainEff(double *BASIS, double *y, double *a_lambda, doubl
 		F77_CALL(dcopy)(&N,&b_blas,&inc0,Targets,&inci);  //dcopy(n, x, incx, y, incy) ---> y = x
 		F77_CALL(daxpy)(&N, &a_blas,y, &inci,Targets, &incj); //daxpy(n, a, x, incx, y, incy) y := a*x + y
 
-//
-		LinearFastEmpBayesGmNeEN(Used, Mu, SIGMA, H, Alpha,PHI,	BASIS, Targets,Scales, a_lambda,b_Alpha,
+		LinearFastEmpBayesGmNeg(Used, Mu, SIGMA, H, Alpha,PHI,	BASIS, Targets,Scales, a_gamma, b_gamma,
 						iteration, n, kdim, m,basisMax,&b,&beta,C_inv,verbose);
 
-		//b				=1/(C_inv.Transpose()*x*x)*(C_inv.Transpose()*x*phenotype);
+		//b					=1/(C_inv.Transpose()*x*x)*(C_inv.Transpose()*x*phenotype);
 
 		 for(i=0;i<N;i++)
 		 {
-			 Csum[i]	= 0;
+			 Csum[i]		= 0;
 			 //for(j=0;j<N;j++)	Csum[i]		= Csum[i] + C_inv[i*N+j];
 			 readPtr1 		= &Csum[i];
 			 readPtr2 		= &C_inv[i*N];
 			F77_CALL(daxpy)(&N, &a_blas,readPtr2, &inci,readPtr1, &inc0); //daxpy(n, a, x, incx, y, incy) y := a*x + y
 
 		 }
-		 Cinv = 0;
+		 Cinv 				= 0;
 		 //for(i=0;i<N;i++)	Cinv = Cinv + Csum[i];
 		F77_CALL(daxpy)(&N, &a_blas,Csum, &inci,&Cinv, &inc0); //daxpy(n, a, x, incx, y, incy) y := a*x + y
 
 		 Cinvy = 0;
 		 //for(i=0;i<N;i++)	Cinvy = Cinvy + Csum[i]*y[i];
 		 Cinvy 				= F77_CALL(ddot)(&N, Csum, &inci,y, &incj);
-		 b		= Cinvy/(Cinv+ 1e-10);
+		 b					= Cinvy/Cinv;
 		vk					= 0;
 		//for(i=0;i<m[0];i++)	vk = vk + Alpha[i];
 		M 					= m[0];
 		F77_CALL(daxpy)(&M, &a_blas,Alpha, &inci,&vk, &inc0); //daxpy(n, a, x, incx, y, incy) y := a*x + y
 
-		err					= fabs(vk - vk0)/m[0];
+		err					= fabs(vk - vk0)/K;
 		if(verbose >2) Rprintf("Iteration number: %d, err: %f;\t mu: %f.\n",iter,err,b);
 	}
-
-	// wald score
 	M					= m[0];
+//printMat(SIGMA,M,1);
+	// wald score
+
 	double *tempW			= (double * ) Calloc(M,double);
 
 	wald[0]					= 0;
-	int index = 0;
+	int index  				= 0;
 	if(verbose >1) Rprintf("EBLASSO Finished, number of basis: %d\n",M);
 	for(i=0;i<M;i++)
     {
@@ -220,9 +220,10 @@ void elasticNetLinearNeMainEff(double *BASIS, double *y, double *a_lambda, doubl
 	}
 	//
 
-	intercept[0]	= b;
+	intercept[0]			= b;
 	residual[0] 	= 1/(beta + 1e-10);
 	//Rprintf("fEB computation compelete!\n");
+
 	Free(Scales);
 	Free(Used);
 	Free(Mu);
@@ -242,21 +243,20 @@ void elasticNetLinearNeMainEff(double *BASIS, double *y, double *a_lambda, doubl
 /************** outputs are passed by COPY in R, cann't dynamic realloc memory **************************/
 /************** Not a problem in C */
 // function [Used,Mu2,SIGMA2,H2,Alpha,PHI2]=fEBBinaryMex(BASIS,Targets,PHI2,Used,Alpha,Scales,a,b,Mu2,iter)
-void LinearFastEmpBayesGmNeEN(int *Used, double *Mu, double *SIGMA, double *H, double *Alpha, double *PHI,
-				double *BASIS, double * Targets, double *Scales, double *a_lambda, double *b_Alpha,
-				int *iteration, int *n, int *kdim, int *m,int basisMax,double *b,double *beta,double * C_inv,
-				int verbose)
+void LinearFastEmpBayesGmNeg(int *Used, double *Mu, double *SIGMA, double *H, double *Alpha, double *PHI,
+				double *BASIS, double * Targets, double *Scales, double *a_gamma, double *b_gamma,
+				int *iteration, int *n, int *kdim, int *m,int basisMax,double *b,double *beta,double * C_inv,int verbose)
 {
     //basis dimension
    int N,K,M_full,N_unused,M,i,j,iter;
-   	N					= *n;			// row number
-    K					= *kdim;		// column number
+   	N						= *n;			// row number
+    K						= *kdim;		// column number
     //M_full				= K*(K+1)/2;
-	M_full = K;
+	M_full  				= K;
 	//kk					= K;
 
 	int *Unused				= (int *) Calloc(M_full,int);
-    iter				= *iteration;
+    iter					= *iteration;
 	//Rprintf("Iteration number: %d\n",iter);
     const int	ACTION_REESTIMATE       = 0;
 	const int	ACTION_ADD          	= 1;
@@ -272,22 +272,21 @@ void LinearFastEmpBayesGmNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
 	IniLogic				= (int*) Calloc(1,int);
     if (iter<=1)
     {
-        IniLogic[0]     = 0;
-        m[0]            = 1;
-		M				= m[0];
-		N_unused		= M_full -1;
-
+        IniLogic[0]    	 	= 0;
+        m[0]            	= 1;
+		M					= m[0];
+		N_unused			= M_full -1;
     }else
     {
-		IniLogic[0]    = 1;
-        M				= *m;          //Used + 1
-		N_unused		= M_full - M;
+		IniLogic[0]    		= 1;
+        M					= *m;          //Used + 1
+		N_unused			= M_full - M;
     }
     //
 	//lapack
 	int inci 				=1;
 	int incj 				=1;
-	double *readPtr1;//, *readPtr2;
+	double *readPtr1, *readPtr2;
 	int inc0 				= 0;
 	double a_blas 			= 1;
 	double b_blas 			= 1;
@@ -297,24 +296,19 @@ void LinearFastEmpBayesGmNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
 	char transb 			= 'N';
 	int lda,ldb,ldc,ldk;
 	//lapack end
-
 	//Rprintf("N_used is: %d; N_unused:%d, M: %d,sample size: %d \n",N_used,N_unused,M,N);
 
-	fEBInitializationGmNeEN(Alpha, PHI, Used, Unused, BASIS, Targets, Scales, IniLogic, N, m, K,beta);
-	//Rprintf("\t Initialized basis %d, Alpha: %f, \n", Used[0],Alpha[0]);
+	fEBInitializationGmNeg(Alpha, PHI, Used, Unused, BASIS, Targets, Scales, IniLogic, N, m, K,beta);
+	if(verbose >3) Rprintf("\t Initialized basis %d, Alpha: %f, \n", Used[0],Alpha[0]);
 	//Rprintf("\t beta: %f\n",beta[0]);
 	//Rprintf("\t m: %d\n",M);
 	//for(i=0;i<N;i++) Rprintf("\tPHI: \t %f\n",PHI[i]);
 	//for(i=0;i<10;i++) Rprintf("PHI2: %f \t  %f; BASIS: %f\n",PHI2[i],PHI2[N+i],BASIS[181*N+i]/Scales[181]);
     //CACHE MATRIX
-	double *BASIS_Targets,**BASIS_PHI;
+	double *BASIS_Targets,*BASIS_PHI;
 	BASIS_Targets		= (double *) Calloc(M_full,double);
-	BASIS_PHI			= (double **) Calloc(basisMax,double);
-	for(i=0;i<M;i++)
-	{
-		BASIS_PHI[i] 	= (double *) Calloc(M_full,double);
-	}
-	CacheBPGmNeEN(BASIS_PHI, BASIS_Targets, BASIS, PHI,	Targets,Scales,N,K,M,M_full);
+	BASIS_PHI			= (double *) Calloc(M_full*basisMax,double);
+	CacheBPGmNeg(BASIS_PHI, BASIS_Targets, BASIS, PHI,	Targets,Scales,N,K,M,M_full);
 
 	double *S_in, *Q_in, *S_out, *Q_out,*gamma;
 	S_in				= (double *) Calloc(M_full,double);
@@ -324,14 +318,15 @@ void LinearFastEmpBayesGmNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
 	gamma				= (double *) Calloc(basisMax,double);
     //[beta,SIGMA2,Mu2,S_in,Q_in,S_out,Q_out,Intercept] ...
     //                   	= FullstatCategory(BASIS,Scales,PHI2,Targets,Used,Alpha,Mu2,BASIS_CACHE)
-	int i_iter = 0;
-	fEBLinearFullStatGmNeEN(beta,SIGMA, H, S_in, Q_in, S_out,Q_out,  BASIS, Scales,
+	int i_iter 			= 0;
+	fEBLinearFullStatGmNeg(beta,SIGMA, H, S_in, Q_in, S_out,Q_out,  BASIS, Scales,
 			PHI, BASIS_PHI,BASIS_Targets, Targets, Used, Alpha, Mu,
 				 gamma, n, m, kdim, iteration,&i_iter);
+//printMat(SIGMA,M,1);
 //Rprintf("\t gamma: %f\n",gamma[0]);
 //Rprintf("\t 182th S_in: %f, Q_in: %f, S_out: %f, Q_out: %f\n",S_in[181],Q_in[181],S_out[181],Q_out[181]);
 //for(i=0;i<100;i++) Rprintf("BASIS_T: %f\n",BASIS_Targets[i]);
-    //              For: [DeltaML,Action,AlphaRoot,anyToDelete]     = fEBDeltaMLGmNeEN(Used,Unused,S_out,Q_out,Alpha,a,b);
+    //              For: [DeltaML,Action,AlphaRoot,anyToDelete]     = fEBDeltaMLGmNeg(Used,Unused,S_out,Q_out,Alpha,a,b);
    double *DeltaML, *AlphaRoot,deltaLogMarginal,*phi,newAlpha,oldAlpha;
     double deltaInv,kappa,Mujj;
     //
@@ -361,19 +356,20 @@ void LinearFastEmpBayesGmNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
 
 	double temp;			// for action_reestimate
 	double * SIGMANEW	= (double * ) Calloc(basisMax*basisMax, double);
-if(verbose>3) Rprintf("check point 3: before loop \n");
+if(verbose >3) Rprintf("check point 3: before loop \n");
    while(LAST_ITERATION!=1)
     {
         i_iter						= i_iter + 1;
+
 		if(verbose >4) Rprintf("\t inner loop %d \n",i_iter);
         //M							= N_used + 1;
      	//N_unused					= M_full - N_used;
 
-        //[DeltaML,Action,AlphaRoot,anyToDelete]     = fEBDeltaMLGmNeEN(Used,Unused,S_out,Q_out,Alpha,a,b);
-		fEBDeltaMLGmNeEN(DeltaML, Action, AlphaRoot,anyToDelete,Used, Unused, S_out, Q_out, Alpha,
-				a_lambda, b_Alpha, M, N_unused);
+        //[DeltaML,Action,AlphaRoot,anyToDelete]     = fEBDeltaMLGmNeg(Used,Unused,S_out,Q_out,Alpha,a,b);
+		fEBDeltaMLGmNeg(DeltaML, Action, AlphaRoot,anyToDelete,Used, Unused, S_out, Q_out, Alpha,
+				a_gamma,b_gamma, M, N_unused);
 		//
-        deltaLogMarginal			= 0.001;
+        deltaLogMarginal			= 0;
         nu							= -1;
         for(i=0;i<M_full;i++)
         {
@@ -383,8 +379,7 @@ if(verbose>3) Rprintf("check point 3: before loop \n");
                 nu                  = i;
             }
         }
-        //selectedAction          = Action[nu];
-
+        //
         if(nu==-1)
 		{
 			anyWorthwhileAction     = 0;
@@ -392,8 +387,8 @@ if(verbose>3) Rprintf("check point 3: before loop \n");
 		}else
 		{
 			anyWorthwhileAction	= 1;
-			selectedAction          = Action[nu];
-			newAlpha                = AlphaRoot[nu];
+		    selectedAction              = Action[nu];
+			newAlpha                    = AlphaRoot[nu];
 		}
 		//Rprintf("\t ActionOn nu= %d, deltaML: %f, selectedAction: %d, Alpha: %f\n",nu+1, DeltaML[nu],selectedAction,AlphaRoot[nu]);
         if(selectedAction==ACTION_REESTIMATE || selectedAction==ACTION_DELETE)
@@ -419,20 +414,9 @@ if(verbose>3) Rprintf("check point 3: before loop \n");
 				F77_CALL(dcopy)(&N,readPtr1,&inci,phi,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
 				b_blas 			= 1/Scales[i];
 				F77_CALL(dscal)(&N,&b_blas,phi,&inci); 		//dscal(n, a, x, incx) x = a*x
+
 				//break;
             }
-			/*else if(i<(K-1))
-            {
-                for(j=(i+1);j<K;j++)
-                {
-                    if(kk==nu)
-                    {
-                        for(L=0;L<N;L++)    phi[L] =BASIS[i*N+L]*BASIS[j*N+L]/Scales[kk];
-						//break;
-                    }
-                    kk              = kk + 1;
-                }
-            }*/
         }
 		//Rprintf("N: %d, kk: %d,i: %d, j: %d, K: %d\n",N,kk,i,j,K);
 		//for(i=0;i<N;i++) Rprintf("phi: %f\n",phi[i]);
@@ -452,7 +436,7 @@ if(verbose>3) Rprintf("check point 3: before loop \n");
         UPDATE_REQUIRED				= 0;
         if(selectedAction==ACTION_REESTIMATE)
         {
-			if(verbose>4) Rprintf("\t\t Action: Reestimate : %d \t deltaML: %f\n",nu + 1, deltaLogMarginal);
+			if(verbose >4) Rprintf("\t\t Action: Reestimate : %d \t deltaML: %f\n",nu + 1, deltaLogMarginal);
             oldAlpha				= Alpha[jj];
             Alpha[jj]				= newAlpha;
 
@@ -477,10 +461,9 @@ if(verbose>3) Rprintf("check point 3: before loop \n");
 			{
 				temp	= 0;
 				//for(j=0;j<M;j++) temp = temp + BASIS_PHI[j*M_full + i]*SIGMA[jj*M + j];
-				//readPtr1 			= &BASIS_PHI[i];
-				//readPtr2 			= &SIGMA[jj*M];
-				//temp = F77_CALL(ddot)(&M, readPtr1, &M_full,readPtr2, &inci);
-				for(j=0;j<M;j++) temp = temp + BASIS_PHI[j][i]*SIGMA[jj*M + j];
+				readPtr1 			= &BASIS_PHI[i];
+				readPtr2 			= &SIGMA[jj*M];
+				temp = F77_CALL(ddot)(&M, readPtr1, &M_full,readPtr2, &inci);
 				S_in[i]				= S_in[i] +  pow(beta[0]*temp,2)*kappa;
 				Q_in[i]				= Q_in[i] +  beta[0]*Mujj *kappa*temp;
 			}
@@ -496,19 +479,15 @@ if(verbose>3) Rprintf("check point 3: before loop \n");
         /////////////////////////////////////////////////////////////////////////////////
         else if(selectedAction==ACTION_ADD)
         {
-			if(verbose>4) Rprintf("\t\t Action:add : %d \t deltaML: %f\n",nu + 1,deltaLogMarginal);
+			if(verbose >4) Rprintf("\t\t Action:add : %d \t deltaML: %f\n",nu + 1,deltaLogMarginal);
 			//Rprintf("\t\t newAlpha: %f\n",newAlpha);
             // B_phi*PHI2*SIGMA2        tmp = B_phi*PHI2
             index					= M + 1;
-			if(index > (basisMax -10) && iter>1 && (N*K) > 1e7) {
+			if(index > (basisMax -10) && (N*K) > 1e7) {
 				Rprintf("bases: %d, warning: out of Memory!\n",index);
 			}//return;
-			if(index > (basisMax -1) && iter>1 && (N*K) > 1e7) {
-				Rprintf("bases: %d, out of Memory,exiting program!\n",index);
-				//exit(1);
-			}
 			//BASIS_B_Phi	=BASIS_Phi*beta;
-			UPDATE_REQUIRED		= ActionAddGmNeEN(BASIS_PHI, BASIS, Scales, PHI, phi, beta, Alpha,
+			UPDATE_REQUIRED		= ActionAddGmNeg(BASIS_PHI, BASIS, Scales, PHI, phi, beta, Alpha,
 				newAlpha, SIGMA, Mu, S_in, Q_in, nu, SIGMANEW, M_full, N, K, M);
 
             //
@@ -531,12 +510,10 @@ if(verbose>3) Rprintf("check point 3: before loop \n");
 		//
         else if(selectedAction==ACTION_DELETE)
         {
-			if(verbose>4) Rprintf("\t\t Action: delete : %d deltaML: %f \n",nu + 1,deltaLogMarginal);
-            UPDATE_REQUIRED = ActionDelGmNeEN(PHI, Alpha, SIGMA, SIGMANEW, BASIS_PHI,
+			if(verbose >4) Rprintf("\t\t Action: delete : %d deltaML: %f \n",nu + 1,deltaLogMarginal);
+            UPDATE_REQUIRED = ActionDelGmNeg(PHI, Alpha, SIGMA, SIGMANEW, BASIS_PHI,
 				Mu, S_in, Q_in, beta, jj, N, M, M_full);
 			index					= M -1;
-			//free deleted row of BASIS_PHI
-			Free(BASIS_PHI[index]);
             //Used; Unused;
             Used[jj]				= Used[index];
 
@@ -553,6 +530,7 @@ if(verbose>3) Rprintf("check point 3: before loop \n");
         //
 		if(UPDATE_REQUIRED==1)
         {
+		//printMat(SIGMA,M,1);
 			//for(i=0;i<M_full;i++)
 			//{
 			//	S_out[i]	= S_in[i];
@@ -572,7 +550,6 @@ if(verbose>3) Rprintf("check point 3: before loop \n");
 			//}
 			MM = M*M;
 			F77_CALL(dcopy)(&MM,SIGMANEW,&inci,SIGMA,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
-
 
 			for(i=0;i<M;i++) gamma[i]		= 1- Alpha[i]*SIGMA[i*M+i];
         }
@@ -603,19 +580,20 @@ if(verbose>3) Rprintf("check point 3: before loop \n");
 			F77_CALL(daxpy)(&M, &a_blas,gamma, &inci,&temp, &inc0);//daxpy(n, a, x, incx, y, incy) y := a*x + y
 
 			 beta[0]			= (N-temp)/ee;
-			 varT				= varTargetsGmNeEN(Targets,N);
+			 varT				= varTargetsGmNeg(Targets,N);
 			 //Rprintf("Gaussian updat after: beta: %f\n",beta[0]);
 			 if(beta[0]>(BetaMaxFactor/varT))	beta[0] = BetaMaxFactor/varT;
 			 deltaLogBeta			= log(beta[0]) - log(betaZ1);
 			 //
 			 if (fabs(deltaLogBeta)>MinDeltaLogBeta)
 			 {
+				//printMat(SIGMA,M,1);
 				//Rprintf("final update\n");
-				FinalUpdateGmNeEN(PHI,H,SIGMA,Targets,Mu,Alpha,beta,N, M);
+				FinalUpdateGmNeg(PHI,H,SIGMA,Targets,Mu,Alpha,beta,N, M);
 				//for(i=0;i<M;i++) Rprintf("Mu: %f \n",Mu[i]);
 				if (selectedAction!=ACTION_TERMINATE)
 				{
-					fEBLinearFullStatGmNeEN(beta,SIGMA,H, S_in, Q_in, S_out,Q_out,  BASIS, Scales,
+					fEBLinearFullStatGmNeg(beta,SIGMA,H, S_in, Q_in, S_out,Q_out,  BASIS, Scales,
 							PHI, BASIS_PHI, BASIS_Targets, Targets, Used, Alpha, Mu,
 							gamma, n, m, kdim, iteration,&i_iter);
 				}
@@ -628,8 +606,9 @@ if(verbose>3) Rprintf("check point 3: before loop \n");
         if(selectedAction==ACTION_TERMINATE) LAST_ITERATION =1;
         if(i_iter==1000)   LAST_ITERATION = 1;
 		//Rprintf("\t\t Last_iteration value: %d\n",LAST_ITERATION);
-    }
-
+    }//while
+	//printMat(SIGMA,M,1);
+	//Rprintf("beta: %f\n",beta[0]);
 	//C_inv                       = beta*eye(N)-beta^2*PHI*SIGMA*PHI';
 	double*PHIsig	= (double *) Calloc(N*M,double); // PHI *SIGMA
 	transb = 'N';
@@ -671,14 +650,10 @@ if(verbose>3) Rprintf("check point 3: before loop \n");
 	//	 }
 	 //}
 	 for(i=0;i<N;i++) C_inv[i*N+i]	=C_inv[i*N+i]	+ beta[0];
+	 //printMat(C_inv,N,1);
 	Free(Unused);
 	Free(IniLogic);
 	Free(BASIS_Targets);
-//Free(BASIS_PHI);
-	for(i=0;i<M;i++)
-	{
-		Free(BASIS_PHI[i]);
-	}
 	Free(BASIS_PHI);
 	Free(S_in);
 	Free(Q_in);
@@ -693,14 +668,16 @@ if(verbose>3) Rprintf("check point 3: before loop \n");
 	Free(e);
 	Free(SIGMANEW);
 	Free(PHIsig);
-	Free(gamma);
+
+	 Free(gamma);
+
 }
 
 /****************************************************************************/
 
 // [Alpha,PHI2,Used,Unused,Mu2]=InitialCategory(BASIS,Targets,Scales,PHI2,Used,Alpha,Mu2,IniLogic)  //IniLogic: whether input is empty or not
 
-void fEBInitializationGmNeEN(double *Alpha, double *PHI, int *Used, int *Unused, double *BASIS,
+void fEBInitializationGmNeg(double *Alpha, double *PHI, int *Used, int *Unused, double *BASIS,
 			double *Targets, double *Scales, int * initial, int N, int *m, int K, double *beta)
 {
     //basis dimension
@@ -750,23 +727,7 @@ void fEBInitializationGmNeEN(double *Alpha, double *PHI, int *Used, int *Unused,
                 Used[0]		= i + 1;
             }
         }
-        /*for(i=0;i< (K - 1);i++)
-        {
-            for(j= (i+ 1); j<K; j++)
-            {
-                proj			= 0;
-                for(k=0;k<N;k++)            proj    = proj + BASIS[i*N+k]*BASIS[j*N+k]*Targets[k];
-                proj            = proj/Scales[kk];
-                if(fabs(proj) > fabs(proj_ini))
-                {
-                    proj_ini    = proj;
-                    loc1        = i;
-                    loc2        = j;
-                    Used[0]		= kk  + 1;
-                }
-                kk              = kk + 1;
-            }
-        }*/
+
         //PHI2, duplicate for linear solver
 
         //
@@ -785,7 +746,7 @@ void fEBInitializationGmNeEN(double *Alpha, double *PHI, int *Used, int *Unused,
 
 		// beta
 		double stdT;
-		stdT					= varTargetsGmNeEN(Targets,N);
+		stdT					= varTargetsGmNeg(Targets,N);
 		stdT					= sqrt(stdT);
 		if (stdT<1e-6)	stdT	= 1e-6;
 		beta[0]					= 1/pow((stdT*0.1),2);
@@ -804,6 +765,7 @@ void fEBInitializationGmNeEN(double *Alpha, double *PHI, int *Used, int *Unused,
 		//}
 		p = F77_CALL(ddot)(&N, PHI, &inci,PHI, &incj);
 		q = F77_CALL(ddot)(&N, PHI, &inci,Targets, &incj);
+
 		p						= p*beta[0];
 		q						= q*beta[0];
 		Alpha[0]				= p*p/(q*q-p);
@@ -830,7 +792,7 @@ void fEBInitializationGmNeEN(double *Alpha, double *PHI, int *Used, int *Unused,
         }
     }
 }
-void LinearSolverGmNeEN(double * a, double *logout, int N, int M,double *output)
+void LinearSolverGmNeg(double * a, double *logout, int N, int M,double *output)
 {
 	const int nrhs		= 1;
 	const double Rcond	= 1e-5;
@@ -849,6 +811,7 @@ void LinearSolverGmNeEN(double * a, double *logout, int N, int M,double *output)
 		Rprintf("Call linear solver degls error!\n");
 		return;
 	}
+
 	//Rprintf("Matrix inversed!\n");
 	//int i;
 	//output				= (double *) realloc(NULL,M*sizeof(double));
@@ -863,14 +826,13 @@ void LinearSolverGmNeEN(double * a, double *logout, int N, int M,double *output)
  /// ***********************************************************************************************
 
 
-void CacheBPGmNeEN(double **BASIS_PHI, double *BASIS_Targets, double *BASIS, double *PHI,
+void CacheBPGmNeg(double *BASIS_PHI, double *BASIS_Targets, double *BASIS, double *PHI,
 				double *Targets, double *scales,int N,int K,int M,int M_full)
 {
 	double	zTargets;
 	double *z2					= (double *) Calloc(M,double);
 	double *cache1				= (double *) Calloc(N,double);
 	double *cache2				= (double *) Calloc(N*M,double);
-
 
 	int i,h,l;
 	//int kk						= K;
@@ -886,8 +848,7 @@ void CacheBPGmNeEN(double **BASIS_PHI, double *BASIS_Targets, double *BASIS, dou
 				cache2[h*M+l]		= PHI[l*N+h] * BASIS[i*N+ h];
 				z2[l]				= z2[l] + cache2[h*M+l];
 			}
-			//BASIS_PHI[l*M_full+i]	= z2[l]/scales[i];
-			BASIS_PHI[l][i]	= (z2[l]/scales[i]);
+			BASIS_PHI[l*M_full+i]	= z2[l]/scales[i];
 		}
 
 		zTargets					= 0;
@@ -899,27 +860,12 @@ void CacheBPGmNeEN(double **BASIS_PHI, double *BASIS_Targets, double *BASIS, dou
 		BASIS_Targets[i]			= zTargets/scales[i];
 
 		//part 2 k+1 to kk
-		/*if(i<(K-1))
-		{
-			for (j					= (i+1);j<K;j++)
-			{
-				for(h=0;h<M;h++)
-				{
-					z2[h]	= 0;
-					for(l =0;l<N;l++) z2[h] = z2[h] + cache2[l*M+h]*BASIS[j*N+l];
-					BASIS_PHI[h*M_full+kk]	= z2[h]/scales[kk];
-				}
 
-				zTargets			= 0;
-				for(h=0;h<N;h++)	zTargets		= zTargets + BASIS[j*N+h]*cache1[h];
-				BASIS_Targets[kk]	= zTargets/scales[kk];
-				kk					= kk + 1;
-			}
-		}*/
 	}
 	Free(z2);
 	Free(cache1);
 	Free(cache2);
+
 }
 
 
@@ -928,23 +874,23 @@ void CacheBPGmNeEN(double **BASIS_PHI, double *BASIS_Targets, double *BASIS, dou
     //Mu2 is the same size of M in PHI2; one dimension more than Alpha
     //Targets: nx1
 
-void fEBLinearFullStatGmNeEN(double *beta, double * SIGMA, double *H, double *S_in, double * Q_in, double * S_out,
-				double * Q_out,   double *BASIS, double * Scales, double *PHI, double **BASIS_PHI,
+void fEBLinearFullStatGmNeg(double *beta, double * SIGMA, double *H, double *S_in, double * Q_in, double * S_out,
+				double * Q_out,   double *BASIS, double * Scales, double *PHI, double *BASIS_PHI,
 				double *BASIS_Targets, double * Targets, int * Used, double *Alpha, double * Mu,
 				 double *gamma,int *n, int *m, int* kdim, int *iteration,int *i_iter)
 {
     //basis dimension
-    int N,K,M,i,j,p;
+    int N,K,M,i;
    	N					= *n;			// row number
     K					= *kdim;		// column number
 	int M_full;
 	//M_full				= (K+1)*K/2;
 	M_full 				= K;
     M					= *m;
-	//lapack
+		//lapack
 	int inci 			=1;
 	int incj 			=1;
-	//double *readPtr1;
+	double *readPtr1;
 	double a_blas 		= 1;
 	double b_blas 		= 1;
 
@@ -960,11 +906,12 @@ void fEBLinearFullStatGmNeEN(double *beta, double * SIGMA, double *H, double *S_
 		H[0]			= 0;
 		//for(p=0;p<N;p++)	H[0]	= H[0] + PHI[p]*PHI[p];
 		H[0] = F77_CALL(ddot)(&N, PHI, &inci,PHI, &incj);
+
 		H[0]			=	H[0]* beta[0] + Alpha[0];
 
 		//save a copy of H
 		SIGMA[0]		= 1/H[0];
-		//MatrixInverseGmNeEN(SIGMA,M);				//inverse of H2 is needed for wald score
+		//MatrixInverseGmNeg(SIGMA,M);				//inverse of H2 is needed for wald score
 	}
 
 		/*for(i=0;i<M;i++)
@@ -987,7 +934,6 @@ void fEBLinearFullStatGmNeEN(double *beta, double * SIGMA, double *H, double *S_
 	//lda 	= N;
 	F77_CALL(dgemv)(&transa, &N, &M,&a_blas, PHI, &N, Targets, &inci, &b_blas,PHIt, &incj FCONE);
 	//y := alpha*A**T*x + beta*y, 		 dgemv(trans, m, n, alpha, a, lda, x, incx, beta, y, incy)
-
 
 	//for(i=0;i<M;i++)
 	//{
@@ -1012,36 +958,33 @@ void fEBLinearFullStatGmNeEN(double *beta, double * SIGMA, double *H, double *S_
 
     for(i=0; i<M_full; i++)
     {
-		for(j=0;j<M;j++)
-		{
-			BPvector[j]			= 0;
+		//for(j=0;j<M;j++)
+		//{
+		//	BPvector[j]			= 0;
 		//	for(p=0;p<M;p++)	BPvector[j]		= BPvector[j] + BASIS_PHI[p*M_full + i]*SIGMA[j*M+p];
-		for(p=0;p<M;p++)	BPvector[j]		= BPvector[j] + BASIS_PHI[p][i]*SIGMA[j*M+p];
-		}
-		//readPtr1 	= &BASIS_PHI[i];
-		//b_blas 		= 0;
-		//F77_CALL(dgemv)(&transa, &M, &M,&a_blas, SIGMA, &M, readPtr1, &M_full, &b_blas,BPvector, &incj);
+		//}
+		readPtr1 	= &BASIS_PHI[i];
+		b_blas 		= 0;
+		F77_CALL(dgemv)(&transa, &M, &M,&a_blas, SIGMA, &M, readPtr1, &M_full, &b_blas,BPvector, &incj FCONE);
+
+
 
         tempSum					= 0;
 		//for(j=0;j<M;j++)		tempSum			= tempSum + BPvector[j]*BASIS_PHI[j*M_full+i];
-		for(j=0;j<M;j++)		tempSum			= tempSum + BPvector[j]*BASIS_PHI[j][i];
-		//readPtr1 	= &BASIS_PHI[i];
-		//tempSum		= F77_CALL(ddot)(&M, BPvector, &inci,readPtr1, &M_full);
+		readPtr1 	= &BASIS_PHI[i];
+		tempSum		= F77_CALL(ddot)(&M, BPvector, &inci,readPtr1, &M_full);
 
 		S_in[i]					= beta[0] - beta[0]*tempSum*beta[0];
 		tempBPMu				= 0;
 		//for(p=0;p<M;p++) tempBPMu = tempBPMu + BASIS_PHI[p*M_full + i] *Mu[p];
-		for(p=0;p<M;p++) tempBPMu = tempBPMu + BASIS_PHI[p][i] *Mu[p];
-		//readPtr1 	= &BASIS_PHI[i];
-		//tempBPMu 	= F77_CALL(ddot)(&M, Mu, &inci,readPtr1, &M_full);
-
+		readPtr1 	= &BASIS_PHI[i];
+		tempBPMu 	= F77_CALL(ddot)(&M, Mu, &inci,readPtr1, &M_full);
 		Q_in[i]					= beta[0]*(BASIS_Targets[i] - tempBPMu);
         //S_out[i]         		= S_in[i];
         //Q_out[i]          		= Q_in[i];
     }// Main loop ends
 	F77_CALL(dcopy)(&M_full,S_in,&inci,S_out,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
 	F77_CALL(dcopy)(&M_full,Q_in,&inci,Q_out,&incj);
-
     //S_out(Used),Q_out(Used)
     //S_out(Used)				= (Alpha .* S_in(Used)) ./ (Alpha - S_in(Used));
     //_out(Used)       			= (Alpha .* Q_in(Used)) ./ (Alpha - S_in(Used));
@@ -1060,12 +1003,13 @@ void fEBLinearFullStatGmNeEN(double *beta, double * SIGMA, double *H, double *S_
 	}
 	Free(PHIt);
 	Free(BPvector);
+
 }
 
 
 //****************************************************************
 //** Matrix Inverse by call lapack library of cholesky decomposition and linear solver *
-void MatrixInverseGmNeEN(double * a,int N)
+void MatrixInverseGmNeg(double * a,int N)
 {
 	const char uplo			= 'U';
 	int info				= 0;
@@ -1091,14 +1035,14 @@ void MatrixInverseGmNeEN(double * a,int N)
 }
 
 //***************************************************************************************************
-void fEBDeltaMLGmNeEN(double *DeltaML, int *Action, double *AlphaRoot, int *anyToDelete,
+void fEBDeltaMLGmNeg(double *DeltaML, int *Action, double *AlphaRoot, int *anyToDelete,
 				int *Used, int * Unused, double * S_out, double * Q_out, double *Alpha,
-				double *a_lambda, double *b_Alpha, int N_used, int N_unused)
+				double *a_gamma, double *b_gamma, int M, int N_unused)
 {
     //basis dimension
     int M_full,i,index;
-anyToDelete[0] = 0;
-    M_full								= N_used + N_unused;
+	anyToDelete[0] 						= 0;
+    M_full								= M + N_unused;
     //
     //Parameters setup      //Action is return as int
     const int	ACTION_REESTIMATE		= 0;
@@ -1106,50 +1050,69 @@ anyToDelete[0] = 0;
 	const int	ACTION_DELETE			= -1;
     //const double    ACTION_OUT		= 0;      //for Unused index and stay unused. not needed: mxArray initialized as zeros
     const double    logL_inf			= 0.0;
-    double alpha, beta, gamma,delta,root2,logL,oldAlpha,lambda1,lambda2; //lambda
-	lambda1 							= *a_lambda * (b_Alpha[0]);
-	lambda2 							= *a_lambda * (1 - b_Alpha[0]);
-    //int   anyToDelete					= 0;
+    double alpha, beta, gamma,delta,root1,root2,logL,oldAlpha,a,b;
+	a									= *a_gamma;
+	b									= *b_gamma;
     int   anyToAdd						= 0;
     const int CNPriorityAddition		= 0;
     const int CNPriorityDeletion		= 1;
-	//Rprintf("Inside fEBDeltaMLBmNeEN: a: %f, b %f \n",a, b);
-    for(i=0;i<N_used;i++)
+	//Rprintf("Inside fEBDeltaMLGmNeg: a: %f, b %f \n",a, b);
+    for(i=0;i<M;i++)
     {
-        //anyToDelete				= false;
         index						= Used[i] -1;
 		DeltaML[index]				= 0;
         //    mexPrintf("N_used: \t %d,\t%d\n",N_used,index);
-        alpha						= S_out[index] - Q_out[index]*Q_out[index] + 2*lambda1 + lambda2;
-        beta						= (S_out[index]+lambda2)*(S_out[index] + 4 *lambda1 + lambda2);
-        gamma						= 2*lambda1*(S_out[index] + lambda2)*(S_out[index]+lambda2);
+        alpha						= 2*a +2 + b*S_out[index] - b*Q_out[index]*Q_out[index];
+        beta						= (4*a + 5)*S_out[index] + b*S_out[index]*S_out[index] -Q_out[index]*Q_out[index];
+        gamma						= (2*a + 3)*S_out[index]*S_out[index];
         delta						= beta*beta - 4*alpha*gamma;
         //case1
-        if(alpha<0 && delta>0)
+        if(alpha>0 && delta>0 && beta<0)
         {
-            root2					= (- beta-sqrt(delta))/(2*alpha);
-            logL					= (log(root2/(root2+S_out[index] + lambda2))+pow(Q_out[index],2)/(root2+S_out[index] + lambda2))*0.5 -lambda1/root2;
+            root1					= (- beta-sqrt(delta))/(2*alpha);
+            logL					= (log(root1/(root1+S_out[index]))+pow(Q_out[index],2)/(root1+S_out[index]))*0.5 + (a+1)*log(b*root1/(1+b*root1));
             if (logL > logL_inf)
             {
-                AlphaRoot[index]    = root2 + lambda2;
+                AlphaRoot[index]    = root1;
                 Action[index]       = ACTION_REESTIMATE;
                 //
-                oldAlpha            = Alpha[i]-lambda2;
-                DeltaML[index]  	= 0.5*(log(root2*(oldAlpha + S_out[index]+lambda2)/(oldAlpha*(root2 + S_out[index] + lambda2))) +
-                                    Q_out[index]*Q_out[index]*(1/(root2 + S_out[index] +lambda2) - 1/(oldAlpha+S_out[index]+ lambda2))) -
-                                    lambda1*(1/root2 - 1/oldAlpha);
+                oldAlpha            = Alpha[i];
+                DeltaML[index]  	= 0.5*(log(root1*(oldAlpha+S_out[index])/(oldAlpha*(root1 + S_out[index])))+
+                                    Q_out[index]*Q_out[index]*(1/(root1+S_out[index])-1/(oldAlpha+S_out[index])))+
+                                    (a+1)*log((root1*(1+b*oldAlpha))/(oldAlpha*(1+b*root1)));
             }
         }
         //case 2
+        else if(alpha==0 && beta<0)
+        {
+            root1               = -gamma/beta;
+            AlphaRoot[index]    = root1;
+            Action[index]       = ACTION_REESTIMATE;
+            //
+            oldAlpha            = Alpha[i];
+            DeltaML[index]  	= 0.5*(log(root1*(oldAlpha+S_out[index])/(oldAlpha*(root1 + S_out[index])))+
+                                    Q_out[index]*Q_out[index]*(1/(root1+S_out[index])-1/(oldAlpha+S_out[index])))+
+                                    (a+1)*log((root1*(1+b*oldAlpha))/(oldAlpha*(1+b*root1)));
+        }
         //case 3
-
+        else if(alpha <0)
+        {
+            root2               = (- beta-sqrt(delta))/(2*alpha);
+            AlphaRoot[index]    = root2;
+            Action[index]       = ACTION_REESTIMATE;
+            //
+            oldAlpha            = Alpha[i];
+            DeltaML[index]  	= 0.5*(log(root2*(oldAlpha + S_out[index])/(oldAlpha*(root2 + S_out[index]))) +
+                                    Q_out[index]*Q_out[index]*(1/(root2 + S_out[index])-1/(oldAlpha + S_out[index]))) +
+                                    (a+1)*log((root2*(1 + b*oldAlpha))/(oldAlpha*(1+b*root2)));
+        }
         //DELETE
-        else if (N_used>1)
+        else if (M>1)
         {
             anyToDelete[0]      = 1;
             Action[index]       = ACTION_DELETE;
-            oldAlpha            = Alpha[i] - lambda2;
-            logL                = (log(oldAlpha/(oldAlpha+S_out[index] + lambda2)) + pow(Q_out[index],2)/(oldAlpha + S_out[index] + lambda2))*0.5 - lambda1/oldAlpha;
+            oldAlpha            = Alpha[i];
+            logL                = (log(oldAlpha/(oldAlpha + S_out[index]))+pow(Q_out[index],2)/(oldAlpha + S_out[index]))*0.5 + (a+1)*log(b*oldAlpha/(1 + b*oldAlpha));
             DeltaML[index]      = - logL;
         }
     }
@@ -1158,25 +1121,44 @@ anyToDelete[0] = 0;
     {
         index					= Unused[i] -1;
 		DeltaML[index]			= 0;
-		alpha						= S_out[index] - Q_out[index]*Q_out[index] + 2*lambda1 + lambda2;
-        beta						= (S_out[index]+ lambda2)*(S_out[index] +lambda2 + 4 *lambda1);
-        gamma						= 2*lambda1*(S_out[index]+lambda2)*(S_out[index] + lambda2);
-        delta						= beta*beta - 4*alpha*gamma;
+        alpha					= 2*a + 2 + b*S_out[index] - b*Q_out[index]*Q_out[index];
+        beta					= (4*a + 5)*S_out[index] + b*S_out[index]*S_out[index] -Q_out[index]*Q_out[index];
+        gamma					= (2*a + 3)*S_out[index]*S_out[index];
+        delta					= beta*beta - 4*alpha*gamma;
         //case1
-        if(alpha<0 && delta>0)
+        if(alpha>0 && delta>0 && beta<0)
         {
-            root2					= (- beta-sqrt(delta))/(2*alpha);
-            logL					= (log(root2/(root2 + S_out[index] + lambda2)) + pow(Q_out[index],2)/(root2 + S_out[index] + lambda2))*0.5 - lambda1/root2;
+            root1					= (- beta-sqrt(delta))/(2*alpha);
+            logL					= (log(root1/(root1+S_out[index]))+pow(Q_out[index],2)/(root1+S_out[index]))*0.5 + (a+1)*log(b*root1/(1+b*root1));
             if (logL > logL_inf)
             {
-                AlphaRoot[index]    = root2 + lambda2;
+                AlphaRoot[index]    = root1;
                 Action[index]       = ACTION_ADD;
+                anyToAdd            = 1;
                 //
-                DeltaML[index]  	= (log(root2/(root2 + S_out[index] + lambda2)) + pow(Q_out[index],2)/(root2 + S_out[index] +lambda2))*0.5 - lambda1/root2;
+                DeltaML[index]  	= (log(root1/(root1+S_out[index]))+pow(Q_out[index],2)/(root1+S_out[index]))*0.5 + (a+1)*log(b*root1/(1+b*root1));
             }
         }
         //case 2
+        else if(alpha==0 && beta<0)
+        {
+            root1               = -gamma/beta;
+            AlphaRoot[index]    = root1;
+            Action[index]       = ACTION_ADD;
+            anyToAdd            = 1;
+            //
+            DeltaML[index]  		= (log(root1/(root1+S_out[index]))+pow(Q_out[index],2)/(root1+S_out[index]))*0.5 + (a+1)*log(b*root1/(1+b*root1));
+        }
         //case 3
+        else if(alpha <0)
+        {
+            root2               = (- beta-sqrt(delta))/(2*alpha);
+            AlphaRoot[index]    = root2;
+            Action[index]       = ACTION_ADD;
+            anyToAdd            = 1;
+            //
+            DeltaML[index]  	= (log(root2/(root2+S_out[index]))+pow(Q_out[index],2)/(root2+S_out[index]))*0.5 + (a+1)*log(b*root2/(1+b*root2));
+        }
     }
 
 	//
@@ -1197,7 +1179,7 @@ anyToDelete[0] = 0;
 }
 
 //888888888888888888888888888888888888888888888888888888888888888888888888888888888888
-int ActionAddGmNeEN(double **BASIS_PHI, double* BASIS, double*scales, double*PHI, double*Phi,
+int ActionAddGmNeg(double *BASIS_PHI, double* BASIS, double*scales, double*PHI, double*Phi,
 			double *beta, double* Alpha, double newAlpha, double*SIGMA, double*Mu, double*S_in,
 			double*Q_in, int nu, double*SIGMANEW, int M_full,int N, int K, int M)
 {
@@ -1205,7 +1187,7 @@ int ActionAddGmNeEN(double **BASIS_PHI, double* BASIS, double*scales, double*PHI
 	double *BASIS_B_Phi		= (double *) Calloc(M_full,double);
 	double *mCi				= (double *) Calloc(M_full,double);
 	double *z				= (double *) Calloc(N,double);
-	//int kk					= K;
+	///int kk					= K;
 	int i,j,h;
 	int index				= M + 1;
 	double*   	tmp			= (double *) Calloc(M,double);
@@ -1219,7 +1201,7 @@ int ActionAddGmNeEN(double **BASIS_PHI, double* BASIS, double*scales, double*PHI
 
 	//lapack end
 
-	//Rprintf("\t\t Inside ActionAddGmNeEN: index: %d\n",index);
+	//Rprintf("\t\t Inside ActionAddGmNeg: index: %d\n",index);
 	for (i					= 0;i<K;i++)
 	{
 		BASIS_Phi[i]		= 0;
@@ -1231,17 +1213,6 @@ int ActionAddGmNeEN(double **BASIS_PHI, double* BASIS, double*scales, double*PHI
 		BASIS_Phi[i]		= BASIS_Phi[i]/scales[i];
 		BASIS_B_Phi[i]		= beta[0]*BASIS_Phi[i];
 		//
-		/*if(i<K-1)
-		{
-			for (j					=(i+1);j<K;j++)
-			{
-				BASIS_Phi[kk]		= 0;
-				for(h=0;h<N;h++)	BASIS_Phi[kk]	= BASIS_Phi[kk] + BASIS[j*N + h] *z[h];
-				BASIS_Phi[kk]		= BASIS_Phi[kk]/scales[kk];
-				BASIS_B_Phi[kk]		= beta[0]*BASIS_Phi[kk];
-				kk					= kk +1;
-			}
-		}*/
 	}
 	//tmp						= ((B_Phi_lowcase'*PHI)*SIGMA)';
 	for(i=0;i<M;i++)
@@ -1253,7 +1224,6 @@ int ActionAddGmNeEN(double **BASIS_PHI, double* BASIS, double*scales, double*PHI
     }
 	b_blas = beta[0];
 	F77_CALL(dscal)(&M,&b_blas,tmp,&inci); 		//dscal(n, a, x, incx) x = a*x
-
 
     for(i=0;i<M;i++)
     {
@@ -1268,6 +1238,7 @@ int ActionAddGmNeEN(double **BASIS_PHI, double* BASIS, double*scales, double*PHI
 	//for(i=0;i<N;i++)		PHI[M*N + i]		= Phi[i];		//new column
 	readPtr1 	= &PHI[M*N];
 	F77_CALL(dcopy)(&N,Phi,&inci,readPtr1,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
+
 
 	s_ii					= 1.0/(newAlpha + S_in[nu]);
 
@@ -1315,18 +1286,17 @@ int ActionAddGmNeEN(double **BASIS_PHI, double* BASIS, double*scales, double*PHI
 	{
 		temp				= 0;
 		//for(j=0;j<M;j++)	temp				= temp + BASIS_PHI[j*M_full + i]*tmpp[j];
-		for(j=0;j<M;j++)	temp				= temp + BASIS_PHI[j][i]*tmpp[j];
-		//readPtr1 			= &BASIS_PHI[i];
-		//temp 				= F77_CALL(ddot)(&M, readPtr1, &M_full,tmpp,&incj);
+		readPtr1 			= &BASIS_PHI[i];
+		temp 				= F77_CALL(ddot)(&M, readPtr1, &M_full,tmpp,&incj);
 
 		mCi[i]				= BASIS_B_Phi[i] -  beta[0]*temp;
-		//BASIS_PHI[M*M_full + i]					= BASIS_Phi[i];
+		BASIS_PHI[M*M_full + i]					= BASIS_Phi[i];
 		S_in[i]				= S_in[i] - mCi[i]*mCi[i]*s_ii;
 		Q_in[i]				= Q_in[i] - mu_i*mCi[i];
 	}
-	BASIS_PHI[M]=BASIS_Phi;
+
 	int UPDATE_REQUIRED		= 1;
-	//Free(BASIS_Phi);
+	Free(BASIS_Phi);
 	Free(BASIS_B_Phi);
 	Free(mCi);
 	Free(z);
@@ -1336,7 +1306,9 @@ int ActionAddGmNeEN(double **BASIS_PHI, double* BASIS, double*scales, double*PHI
 
 	return  UPDATE_REQUIRED;
  }
-int ActionDelGmNeEN(double*PHI, double*Alpha, double*SIGMA, double*SIGMANEW, double**BASIS_PHI,
+
+
+int ActionDelGmNeg(double*PHI, double*Alpha, double*SIGMA, double*SIGMANEW, double*BASIS_PHI,
 		double*Mu, double*S_in, double*Q_in, double *beta, int jj, int N, int M, int M_full)
  {
 	 int i,j;
@@ -1346,8 +1318,6 @@ int ActionDelGmNeEN(double*PHI, double*Alpha, double*SIGMA, double*SIGMANEW, dou
 	int incj =1;
 	double *readPtr1, *readPtr2;
 	//lapack end
-
-
 	//
 	Alpha[jj]				= Alpha[index];           //Alpha: M -> M - 1
 
@@ -1357,10 +1327,11 @@ int ActionDelGmNeEN(double*PHI, double*Alpha, double*SIGMA, double*SIGMANEW, dou
 	readPtr2 = &PHI[index*N];
 	F77_CALL(dcopy)(&N,readPtr2,&inci,readPtr1,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
 
+
+
     int Mujj;
 	Mujj					= Mu[jj];
 	for(i=0;i<M;i++)  Mu[i] = Mu[i] - Mujj*SIGMA[jj*M +i]/SIGMA[jj*M + jj];
-
 	//
 	Mu[jj]					= Mu[index];
 	//------------------------------------------------------------------------------
@@ -1374,19 +1345,19 @@ int ActionDelGmNeEN(double*PHI, double*Alpha, double*SIGMA, double*SIGMANEW, dou
 	{
 		for(j=0;j<index;j++) SIGMANEW[j*index + i]	= tempSIGMA[j*M + i];
 	}
-	if(jj != index)// incase the one to be deleted is the last column.
+	if(jj!=index)
 	{
-	//step 1: last column
-	readPtr1 = &SIGMANEW[jj*index];
-	readPtr2 = &tempSIGMA[index*M];
-	F77_CALL(dcopy)(&index,readPtr2,&inci,readPtr1,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
-	//step 2: prepare for last row
-	tempSIGMA[jj*M + M-1] = tempSIGMA[M*M-1];
+		//step 1: last column
+		readPtr1 = &SIGMANEW[jj*index];
+		readPtr2 = &tempSIGMA[index*M];
+		F77_CALL(dcopy)(&index,readPtr2,&inci,readPtr1,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
+		//step 2: prepare for last row
+		tempSIGMA[jj*M + M-1] = tempSIGMA[M*M-1];
 
-	//last step
-	readPtr1 = &SIGMANEW[jj];
-	readPtr2 = &tempSIGMA[M-1];
-	F77_CALL(dcopy)(&index,readPtr2,&M,readPtr1,&index);  //dcopy(n, x, incx, y, incy) ---> y = x
+		//last step
+		readPtr1 = &SIGMANEW[jj];
+		readPtr2 = &tempSIGMA[M-1];
+		F77_CALL(dcopy)(&index,readPtr2,&M,readPtr1,&index);  //dcopy(n, x, incx, y, incy) ---> y = x
 	}
 
 
@@ -1409,26 +1380,21 @@ int ActionDelGmNeEN(double*PHI, double*Alpha, double*SIGMA, double*SIGMANEW, dou
 
 	//BLOCK MIGRATION OF SIGMANEW ------------------JUN142013 -------IN EBELASTICNET
 
-
 	double temp;
 	for(i=0;i<M_full;i++)
 	{
 		temp				= 0;
-		//for(j=0;j<M;j++)	temp				= temp + BASIS_PHI[j*M_full + i]*SIGMA[jj*M + j];
-		for(j=0;j<M;j++)	temp				= temp + BASIS_PHI[j][i]*SIGMA[jj*M + j];
+		for(j=0;j<M;j++)	temp				= temp + BASIS_PHI[j*M_full + i]*SIGMA[jj*M + j];
 		S_in[i]				= S_in[i] +  pow(beta[0]*temp,2)/SIGMA[jj*M + jj];
 		Q_in[i]				= Q_in[i] +  beta[0]*temp *Mujj /SIGMA[jj*M + jj];
 		//jPm = beta*temp
 	}
-	double *ptr;
-	ptr=BASIS_PHI[jj];
-	BASIS_PHI[jj]=BASIS_PHI[index];
-	BASIS_PHI[index]=ptr;
+
 	//BASIS_PHI(:,jj) = [];
 	//for(i=0;i<M_full;i++) BASIS_PHI[jj*M_full + i]	= BASIS_PHI[index*M_full+i];
-	//readPtr1 = &BASIS_PHI[jj*M_full];
-	//readPtr2 = &BASIS_PHI[index*M_full];
-	//F77_CALL(dcopy)(&M_full,readPtr2,&inci,readPtr1,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
+	readPtr1 = &BASIS_PHI[jj*M_full];
+	readPtr2 = &BASIS_PHI[index*M_full];
+	F77_CALL(dcopy)(&M_full,readPtr2,&inci,readPtr1,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
 
 	int UPDATE_REQUIRED		=1;
 	Free(tempSIGMA);
@@ -1436,8 +1402,7 @@ int ActionDelGmNeEN(double*PHI, double*Alpha, double*SIGMA, double*SIGMANEW, dou
 }//end of ACTION_DELETE
 
 
-
-double varTargetsGmNeEN(double* Targets,int N)
+double varTargetsGmNeg(double* Targets,int N)
 {
 	int i;
 	double meanT			= 0;
@@ -1452,11 +1417,10 @@ double varTargetsGmNeEN(double* Targets,int N)
 }
 
 
-void FinalUpdateGmNeEN(double *PHI, double *H,double *SIGMA, double *Targets,
+void FinalUpdateGmNeg(double *PHI, double *H,double *SIGMA, double *Targets,
 			double *Mu, double *Alpha, double *beta, int N, int M)
 {
 	int i;
-	//PHI'*PHI*beta + diag(Alpha)
 	//lapack
 	int inci =1;
 	int incj =1;
@@ -1492,6 +1456,7 @@ void FinalUpdateGmNeEN(double *PHI, double *H,double *SIGMA, double *Targets,
 	MM	 	= M*M;
 	F77_CALL(dscal)(&MM,&b_blas,H,&inci); 		//dscal(n, a, x, incx) x = a*x
 
+
 	for(i=0;i<M;i++)			H[i*M+i]		= H[i*M+i] + Alpha[i];
 
 	//save a copy of H
@@ -1501,11 +1466,10 @@ void FinalUpdateGmNeEN(double *PHI, double *H,double *SIGMA, double *Targets,
 	//}
 	F77_CALL(dcopy)(&MM,H,&inci,SIGMA,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
 
-
-	MatrixInverseGmNeEN(SIGMA,M);				//inverse of H2 is needed for wald score
+	MatrixInverseGmNeg(SIGMA,M);				//inverse of H2 is needed for wald score
 
 	//Muu						=SIGMA*(PHI.Transpose()*Targets)*beta;
-double * PHIt				= (double *) Calloc(M,double);
+	double * PHIt				= (double *) Calloc(M,double);
 	//for(i=0;i<M;i++)
 	//{
 	//	PHIt[i]					= 0;
@@ -1533,4 +1497,9 @@ double * PHIt				= (double *) Calloc(M,double);
 	Free(PHIt);
 
 }
+
+
+
+
+
 

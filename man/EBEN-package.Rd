@@ -7,7 +7,7 @@
 \description{ Fast EBEN algorithms. \cr
 			EBEN implements a normal and generalized gamma hierearchical priors. \cr
 				(    **    )	Two parameters (alpha, lambda) are equivalent with elastic net priors. 	\cr
-				(    **    )	When parameter alpha = 1, it is equivalent with EBlasso-NE (normal + exponential) \cr					
+				(    **    )	When parameter alpha = 1, it is equivalent with EBlasso-NE (normal + exponential) \cr
 			Two models are available for both methods: 			\cr
 				(    **    )	General linear regression model.			\cr
 				(    **    )	Logistic regression model.			\cr
@@ -16,13 +16,13 @@
 				(    **    )	group of variables can be selected together. \cr
 			*Epistasis (two-way interactions) can be included for all models/priors \cr
 			*model implemented with memory efficient c code. \cr
-			*LAPACK/BLAS are used for most linear algebra computations. 
+			*LAPACK/BLAS are used for most linear algebra computations.
 }
 \details{
 \tabular{ll}{
 Package: \tab EBEN\cr
 Type: \tab Package\cr
-Version: \tab 4.6\cr
+Version: \tab 5.1\cr
 Date: \tab 2015-10-06\cr
 License: \tab gpl\cr
 }
