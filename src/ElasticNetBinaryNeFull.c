@@ -60,7 +60,7 @@ void ElasticNetBinaryNEfull(double *BASIS, double * Targets, double *a_Lambda,do
 	double vk0				= 1e-30;
 	double temp				= 0;
 	int i,j,l,kk;
-	double *Scales			= (double * ) Calloc(M_full, double);
+	double *Scales			= (double * ) R_Calloc(M_full, double);
 
 	for (i					=0;i<K;i++)
 	{
@@ -98,14 +98,14 @@ void ElasticNetBinaryNEfull(double *BASIS, double * Targets, double *a_Lambda,do
 	int * Used,*iteration, *m;
 	//Rprintf("max basis: %d\n",basisMax);
 
-	Used					= (int* ) Calloc(basisMax, int);
-	Mu2						= (double * ) Calloc(basisMax, double);
-	SIGMA2					= (double * ) Calloc(basisMax*basisMax, double);
-	H2						= (double * ) Calloc(basisMax*basisMax, double);
-	Alpha					= (double * ) Calloc(basisMax, double);
-	PHI2					= (double * ) Calloc(N*basisMax, double);
-	iteration				= (int* ) Calloc(1, int);
-	m						= (int* ) Calloc(1, int);
+	Used					= (int* ) R_Calloc(basisMax, int);
+	Mu2						= (double * ) R_Calloc(basisMax, double);
+	SIGMA2					= (double * ) R_Calloc(basisMax*basisMax, double);
+	H2						= (double * ) R_Calloc(basisMax*basisMax, double);
+	Alpha					= (double * ) R_Calloc(basisMax, double);
+	PHI2					= (double * ) R_Calloc(N*basisMax, double);
+	iteration				= (int* ) R_Calloc(1, int);
+	m						= (int* ) R_Calloc(1, int);
 	//Rprintf("outer loop starts");
 	m[0]			= 2;
 	while (iter<iter_max && err>err_max)
@@ -126,7 +126,7 @@ void ElasticNetBinaryNEfull(double *BASIS, double * Targets, double *a_Lambda,do
 	// wald score
 	int M					= m[0];
 	//int M					= m[0];
-	double *tempW			= (double * ) Calloc(M,double);
+	double *tempW			= (double * ) R_Calloc(M,double);
 
 	wald[0]					= 0;
 	int index = 0;
@@ -151,16 +151,16 @@ void ElasticNetBinaryNEfull(double *BASIS, double * Targets, double *a_Lambda,do
 	intercept[0]	= Mu2[0];
 	intercept[1]	= SIGMA2[0];
 	//Rprintf("fEB computation compelete!\n");
-	Free(Scales);
-	Free(Used);
-	Free(Mu2);
-	Free(SIGMA2);
-	Free(H2);
-	Free(Alpha);
-	Free(PHI2);
-	Free(iteration);
-	Free(m);
-	Free(tempW);
+	R_Free(Scales);
+	R_Free(Used);
+	R_Free(Mu2);
+	R_Free(SIGMA2);
+	R_Free(H2);
+	R_Free(Alpha);
+	R_Free(PHI2);
+	R_Free(iteration);
+	R_Free(m);
+	R_Free(tempW);
 }
 
 
@@ -182,8 +182,8 @@ void fEBBinaryMexBfNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
     kk					= K;
 
 
-    double *beta	= (double *)Calloc(N,double);
-	int *Unused = (int *) Calloc(M_full,int);
+    double *beta	= (double *)R_Calloc(N,double);
+	int *Unused = (int *) R_Calloc(M_full,int);
     iter				= *iteration;
 	//Rprintf("Iteration number: %d\n",iter);
     const int	ACTION_REESTIMATE       = 0;
@@ -193,7 +193,7 @@ void fEBBinaryMexBfNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
 
     //[Alpha,PHI2,Used,Unused,Mu2]=InitialCategory(BASIS,Targets,Scales,PHI2,Used,Alpha,Mu2,IniLogic)
     int *IniLogic;
-	IniLogic			= (int*) Calloc(1,int);
+	IniLogic			= (int*) R_Calloc(1,int);
     if (iter<=1)
     {
         IniLogic[0]     = 0;
@@ -216,17 +216,17 @@ void fEBBinaryMexBfNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
 	//Rprintf("\t Initialized basis %d, Alpha: %f, Mu: %f \n", Used[0],Alpha[0],Mu2[1]);
 	//for(i=0;i<10;i++) Rprintf("PHI2: %f \t  %f; BASIS: %f\n",PHI2[i],PHI2[N+i],BASIS[181*N+i]/Scales[181]);
     double *basisCache;
-	basisCache         = (double *) Calloc(N*K,double);
+	basisCache         = (double *) R_Calloc(N*K,double);
     for(i=0;i<K;i++)
     {
         for(j=0;j<N;j++)            basisCache[i*N+j] = BASIS[i*N+j]*BASIS[i*N+j];
     }
 
 	double *S_in, *Q_in, *S_out, *Q_out;
-	S_in				= (double *) Calloc(M_full,double);
-	Q_in				= (double *) Calloc(M_full,double);
-	S_out				= (double *) Calloc(M_full,double);
-	Q_out				= (double *) Calloc(M_full,double);
+	S_in				= (double *) R_Calloc(M_full,double);
+	Q_in				= (double *) R_Calloc(M_full,double);
+	S_out				= (double *) R_Calloc(M_full,double);
+	Q_out				= (double *) R_Calloc(M_full,double);
     //[beta,SIGMA2,Mu2,S_in,Q_in,S_out,Q_out,Intercept] ...
     //                   	= FullstatCategory(BASIS,Scales,PHI2,Targets,Used,Alpha,Mu2,BASIS_CACHE)
 	fEBCatFullStatBfNeEN(beta, SIGMA2, H2, S_in, Q_in, S_out, Q_out,  BASIS,Scales, PHI2,
@@ -239,14 +239,14 @@ void fEBBinaryMexBfNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
     double deltaInv,kappa,Mujj,s_ii,*tmp,*tmpp,mu_i;
     //
 	int *Action, *anyToDelete,selectedAction;
-	anyToDelete			= (int*) Calloc(1,int);
-	DeltaML				=	(double *) Calloc(M_full,double);
-	AlphaRoot			=	(double *) Calloc(M_full,double);
-	Action				= (int *) Calloc(M_full,int);
-  	phi					= (double *) Calloc(N,double);
+	anyToDelete			= (int*) R_Calloc(1,int);
+	DeltaML				=	(double *) R_Calloc(M_full,double);
+	AlphaRoot			=	(double *) R_Calloc(M_full,double);
+	Action				= (int *) R_Calloc(M_full,int);
+  	phi					= (double *) R_Calloc(N,double);
 
-  	tmp					= (double *) Calloc(basisMax,double);
-  	tmpp				= (double *) Calloc(basisMax,double);
+  	tmp					= (double *) R_Calloc(basisMax,double);
+  	tmpp				= (double *) R_Calloc(basisMax,double);
     int nu,jj,index;
     jj					= -1;
     int anyWorthwhileAction,UPDATE_REQUIRED;
@@ -259,7 +259,7 @@ void fEBBinaryMexBfNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
 	logLikelihood		= 1e-30;
 	dL					= 1e-30;
 	double *PHI_Mu;
-	PHI_Mu				= (double*) Calloc(N,double);
+	PHI_Mu				= (double*) R_Calloc(N,double);
 	//Rprintf("check point 3: before loop \n");
 
     while(LAST_ITERATION!=1)
@@ -459,22 +459,22 @@ void fEBBinaryMexBfNeEN(int *Used, double *Mu2, double *SIGMA2, double *H2, doub
     }
 
 	LOGlikelihood[0] = logLikelihood;
-	Free(beta);
-	Free(Unused);
-	Free(IniLogic);
-	Free(basisCache);
-	Free(S_in);
-	Free(Q_in);
-	Free(S_out);
-	Free(Q_out);
-	Free(anyToDelete);
-	Free(DeltaML);
-	Free(AlphaRoot);
-	Free(Action);
-	Free(phi);
-	Free(tmp);
-	Free(tmpp);
-	Free(PHI_Mu);
+	R_Free(beta);
+	R_Free(Unused);
+	R_Free(IniLogic);
+	R_Free(basisCache);
+	R_Free(S_in);
+	R_Free(Q_in);
+	R_Free(S_out);
+	R_Free(Q_out);
+	R_Free(anyToDelete);
+	R_Free(DeltaML);
+	R_Free(AlphaRoot);
+	R_Free(Action);
+	R_Free(phi);
+	R_Free(tmp);
+	R_Free(tmpp);
+	R_Free(PHI_Mu);
 }
 
 /****************************************************************************/
@@ -510,7 +510,7 @@ void fEBInitializationBfNeEN(double *Alpha, double * PHI2, int *Used, int *Unuse
         double *TargetPseudo,proj_ini,proj;
         int loc1 = 0;
 		int loc2 = 0;
-        TargetPseudo		= (double *) Calloc(N,double);
+        TargetPseudo		= (double *) R_Calloc(N,double);
 		for(i=0;i<N;i++)            TargetPseudo[i]     = 2*Targets[i] -1;
         kk					= K;
         proj_ini			= 0;
@@ -548,7 +548,7 @@ void fEBInitializationBfNeEN(double *Alpha, double * PHI2, int *Used, int *Unuse
         }
         //PHI2, duplicate for linear solver
 		double *PHIqr;
-		PHIqr					= (double *) Calloc(N*M,double);
+		PHIqr					= (double *) R_Calloc(N*M,double);
 		for(i=0;i<N;i++)
 		{
 			PHI2[i]         = 1;
@@ -557,7 +557,7 @@ void fEBInitializationBfNeEN(double *Alpha, double * PHI2, int *Used, int *Unuse
 
         //
         double * PHI;
-        PHI						= (double *) Calloc(N,double);
+        PHI						= (double *) R_Calloc(N,double);
 		if(loc1==loc2)
         {
             for(i=0;i<N;i++)
@@ -577,7 +577,7 @@ void fEBInitializationBfNeEN(double *Alpha, double * PHI2, int *Used, int *Unuse
             }
         }
 		double *logout;
-        logout                      = (double *) Calloc(N,double);
+        logout                      = (double *) R_Calloc(N,double);
         for (i=0;i<N;i++)            logout[i]               = log(((TargetPseudo[i] * 0.9 + 1)/2)/(1-(TargetPseudo[i] * 0.9 + 1)/2));
 		// Call function
 		LinearSolverBfNeEN(PHIqr, logout, N, M, Mu2);
@@ -586,10 +586,10 @@ void fEBInitializationBfNeEN(double *Alpha, double * PHI2, int *Used, int *Unuse
         else            Alpha[0]    = 1/(Mu2[1]*Mu2[1]);
         if(Alpha[0]< init_alpha_min) Alpha[0]				= init_alpha_min;
         if(Alpha[0]> init_alpha_max) Alpha[0]				= init_alpha_max;
-			Free(TargetPseudo);
-		Free(PHIqr);
-		Free(PHI);
-		Free(logout);
+			R_Free(TargetPseudo);
+		R_Free(PHIqr);
+		R_Free(PHI);
+		R_Free(logout);
 
 	}
 
@@ -616,10 +616,10 @@ void LinearSolverBfNeEN(double * a, double *logout, int N, int M,double *output)
 	const double Rcond	= 1e-5;
 	int rank			= M;
 	int *jpvt;
-	jpvt				= (int * ) Calloc(M,int);
+	jpvt				= (int * ) R_Calloc(M,int);
 	const int lwork	= M*N + 4*N;
 	double * work;
-	work				= (double *) Calloc(lwork,double);
+	work				= (double *) R_Calloc(lwork,double);
 
 	int info			= 0;
 	// *************************Call LAPACK library ************************
@@ -636,8 +636,8 @@ void LinearSolverBfNeEN(double * a, double *logout, int N, int M,double *output)
 	int inci = 1;
 	int incj = 1;
 	F77_CALL(dcopy)(&M,logout,&inci,output,&incj);
-	Free(jpvt);
-	Free(work);
+	R_Free(jpvt);
+	R_Free(work);
 }
 
  /// ***********************************************************************************************
@@ -673,8 +673,8 @@ void fEBCatFullStatBfNeEN(double * beta, double * SIGMA2, double * H2, double *S
 
     //	y				= fEBSigmoidBfNeEN(PHI2 * Mu2);
     double *PHI_Mu,*y;
-    PHI_Mu        		= (double *) Calloc(N,double);
-	y					= (double *) Calloc(N,double);
+    PHI_Mu        		= (double *) R_Calloc(N,double);
+	y					= (double *) R_Calloc(N,double);
     for(i=0;i<N;i++)
     {
         PHI_Mu[i]		= 0;
@@ -684,16 +684,16 @@ void fEBCatFullStatBfNeEN(double * beta, double * SIGMA2, double * H2, double *S
 
     //e=Targets-y
     double *e;
-    e					= (double *) Calloc(N,double);
+    e					= (double *) R_Calloc(N,double);
     for(i=0;i<N;i++)    e[i]        = Targets[i] - y[i];
 
     //Main loop
         //temp parameters: BPvector
     double *BPvector,*temp,*temp1,*temp2;
-    BPvector			= (double *) Calloc(M,double);
-    temp				= (double *) Calloc(M,double);
-    temp1				= (double *) Calloc(M*N,double);
-    temp2				= (double *) Calloc(N,double);
+    BPvector			= (double *) R_Calloc(M,double);
+    temp				= (double *) R_Calloc(M,double);
+    temp1				= (double *) R_Calloc(M*N,double);
+    temp2				= (double *) R_Calloc(N,double);
     double tempSum,BBsquare,tempZE;
     //Cache BASIS.^2	outside the Inner loop of the program: save computation
 	//double Print;
@@ -790,13 +790,13 @@ void fEBCatFullStatBfNeEN(double * beta, double * SIGMA2, double * H2, double *S
 			Print				= Alpha[i];
 			Rprintf("Alpha: %f\n",Print);*/
 	}
-	Free(PHI_Mu);
-	Free(y);
-	Free(e);
-	Free(BPvector);
-	Free(temp);
-	Free(temp1);
-	Free(temp2);
+	R_Free(PHI_Mu);
+	R_Free(y);
+	R_Free(e);
+	R_Free(BPvector);
+	R_Free(temp);
+	R_Free(temp1);
+	R_Free(temp2);
 
 }
 
@@ -816,14 +816,14 @@ void fEBCatPostModeBfNeEN(double * Mu2, double *beta,double *SIGMA2, double * H2
     //Function fEBDataErrorBfNeEN [error,y]   =fEBDataErrorBfNeEN(PHI_Mu,Targets)
     //Calculate PHI_Mu: size: Nx1
     double *PHI_Mu, *y;
-	PHI_Mu						= (double *) Calloc(N,double);
+	PHI_Mu						= (double *) R_Calloc(N,double);
 	for(i = 0;i<N;i++)
     {
         PHI_Mu[i]				= 0;
         for(j = 0;j<M;j++)		PHI_Mu[i]	= PHI_Mu[i] + PHI2[j*N+i]*Mu2[j];
     }
 	double dataError			= 0;
-	y							= (double *) Calloc(N,double);
+	y							= (double *) R_Calloc(N,double);
 	dataError					= fEBDataErrorBfNeEN(dataError,y,PHI_Mu,Targets,N);
     //
     double regulariser			= 0;
@@ -831,17 +831,17 @@ void fEBCatPostModeBfNeEN(double * Mu2, double *beta,double *SIGMA2, double * H2
     double newTotalError,g0,h0;
     newTotalError				= regulariser + dataError;
     double * errorLog,*e,*g2;
-    errorLog					= (double *) Calloc(itsMax,double);
-	e							= (double *) Calloc(N,double);
-	g2							= (double *) Calloc(M,double);
+    errorLog					= (double *) R_Calloc(itsMax,double);
+	e							= (double *) R_Calloc(N,double);
+	g2							= (double *) R_Calloc(M,double);
 	//
     g0							= 0;
     h0							= 0;
     //setup H
 	int countGrad;
     double *DeltaMu, *Mu_new2;
-    DeltaMu						= (double *) Calloc(M,double);
-    Mu_new2						= (double *) Calloc(M,double);
+    DeltaMu						= (double *) R_Calloc(M,double);
+    Mu_new2						= (double *) R_Calloc(M,double);
 	double step					= 1.0;
 
     //*****************************************************************************
@@ -943,13 +943,13 @@ void fEBCatPostModeBfNeEN(double * Mu2, double *beta,double *SIGMA2, double * H2
         }//end of while
         if(step==1) break;
     }
-	Free(PHI_Mu);
-	Free(y);
-	Free(errorLog);
-	Free(e);
-	Free(g2);
-	Free(DeltaMu);
-	Free(Mu_new2);
+	R_Free(PHI_Mu);
+	R_Free(y);
+	R_Free(errorLog);
+	R_Free(e);
+	R_Free(g2);
+	R_Free(DeltaMu);
+	R_Free(Mu_new2);
 
 
 }

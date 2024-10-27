@@ -84,8 +84,8 @@ void fEBLinearEpisEff(double *BASIS, double *y, double *a_gamma, double *b_gamma
 	double vk0				= 1e-30;
 	double temp				= 0;
 	int i,j,l,kk;
-	//double *Scales			= (double * ) Calloc(M_full, double);
-	float *Scales			= (float * ) Calloc(M_full, float);
+	//double *Scales			= (double * ) R_Calloc(M_full, double);
+	float *Scales			= (float * ) R_Calloc(M_full, float);
 	double scal = 1.0;
 	//lapack
 	int inci 				=1;
@@ -137,16 +137,16 @@ void fEBLinearEpisEff(double *BASIS, double *y, double *a_gamma, double *b_gamma
 	double *Mu, *SIGMA, *H, *Alpha, *PHI,*Targets,*C_inv;
 	int * Used,*iteration, *m;
 
-	Used					= (int* ) Calloc(basisMax, int);
-	Mu						= (double * ) Calloc(basisMax, double);
-	SIGMA					= (double * ) Calloc((basisMax*basisMax), double);
-	H						= (double * ) Calloc((basisMax*basisMax), double);
-	Alpha					= (double * ) Calloc(basisMax, double);
-	PHI						= (double * ) Calloc((N*basisMax), double);
-	Targets					= (double * ) Calloc(N, double);
-	iteration				= (int* ) Calloc(1, int);
-	m						= (int* ) Calloc(1, int);
-	C_inv					= (double * ) Calloc((N*N), double);
+	Used					= (int* ) R_Calloc(basisMax, int);
+	Mu						= (double * ) R_Calloc(basisMax, double);
+	SIGMA					= (double * ) R_Calloc((basisMax*basisMax), double);
+	H						= (double * ) R_Calloc((basisMax*basisMax), double);
+	Alpha					= (double * ) R_Calloc(basisMax, double);
+	PHI						= (double * ) R_Calloc((N*basisMax), double);
+	Targets					= (double * ) R_Calloc(N, double);
+	iteration				= (int* ) R_Calloc(1, int);
+	m						= (int* ) R_Calloc(1, int);
+	C_inv					= (double * ) R_Calloc((N*N), double);
 	if(verbose >1) Rprintf("outer loop starts\n");
 	m[0]					= 1;
 	int M					= m[0];
@@ -157,7 +157,7 @@ void fEBLinearEpisEff(double *BASIS, double *y, double *a_gamma, double *b_gamma
 
 	b						= b/N;
 	double beta;
-	double *Csum			= (double *) Calloc(N,double);
+	double *Csum			= (double *) R_Calloc(N,double);
 	double Cinv,Cinvy;
 	while (iter<iter_max && err>err_max)
 	{
@@ -203,7 +203,7 @@ void fEBLinearEpisEff(double *BASIS, double *y, double *a_gamma, double *b_gamma
 
 	// wald score
 	M					= m[0];
-	double *tempW			= (double * ) Calloc(M,double);
+	double *tempW			= (double * ) R_Calloc(M,double);
 
 	wald[0]					= 0;
 	int index = 0;
@@ -274,19 +274,19 @@ void fEBLinearEpisEff(double *BASIS, double *y, double *a_gamma, double *b_gamma
 	intercept[0]	= b;
 	residual[0] 	= 1/(beta + 1e-10);
 	//Rprintf("fEB computation compelete!\n");
-	Free(Scales);
-	Free(Used);
-	Free(Mu);
-	Free(SIGMA);
-	Free(H);
-	Free(Alpha);
-	Free(PHI);
-	Free(Targets);
-	Free(iteration);
-	Free(m);
-	Free(C_inv);
-	Free(Csum);
-	Free(tempW);
+	R_Free(Scales);
+	R_Free(Used);
+	R_Free(Mu);
+	R_Free(SIGMA);
+	R_Free(H);
+	R_Free(Alpha);
+	R_Free(PHI);
+	R_Free(Targets);
+	R_Free(iteration);
+	R_Free(m);
+	R_Free(C_inv);
+	R_Free(Csum);
+	R_Free(tempW);
 
 }
 
@@ -306,7 +306,7 @@ void LinearFastEmpBayesGFNeg(int *Used, double *Mu, double *SIGMA, double *H, do
     M_full				= K*(K+1)/2;
 	kk					= K;
 	//Rprintf("M_full: %d; basisMax: %d\n",M_full,basisMax);
-	int *Unused			= (int *) Calloc(M_full,int);
+	int *Unused			= (int *) R_Calloc(M_full,int);
     iter				= *iteration;
 	//Rprintf("Iteration number: %d\n",iter);
     const int	ACTION_REESTIMATE       = 0;
@@ -320,7 +320,7 @@ void LinearFastEmpBayesGFNeg(int *Used, double *Mu, double *SIGMA, double *H, do
 	const double	MinDeltaLogBeta		=1e-6;
     //[Alpha,PHI2,Used,Unused,Mu2]=InitialCategory(BASIS,Targets,Scales,PHI2,Used,Alpha,Mu2,IniLogic)
     int *IniLogic;
-	IniLogic			= (int*) Calloc(1,int);
+	IniLogic			= (int*) R_Calloc(1,int);
     if (iter<=1)
     {
         IniLogic[0]     = 0;
@@ -360,17 +360,17 @@ void LinearFastEmpBayesGFNeg(int *Used, double *Mu, double *SIGMA, double *H, do
 	//for(i=0;i<10;i++) Rprintf("PHI2: %f \t  %f; BASIS: %f\n",PHI2[i],PHI2[N+i],BASIS[181*N+i]/Scales[181]);
     //CACHE MATRIX
 	//double *BASIS_Targets,*BASIS_PHI;
-	//BASIS_Targets		= (double *) Calloc(M_full,double);
-	//BASIS_PHI			= (double *) Calloc(M_full*basisMax,double);
+	//BASIS_Targets		= (double *) R_Calloc(M_full,double);
+	//BASIS_PHI			= (double *) R_Calloc(M_full*basisMax,double);
 	//double scal = 1.0;
 	float *BASIS_Targets,**BASIS_PHI;
 	//int MMax 			= (M_full*basisMax);
 	//Rprintf("M_full: %d; basisMax: %d; maxMemory size: %d\n",M_full, basisMax,MMax);
-	BASIS_Targets		= (float *) Calloc(M_full,float);
-	BASIS_PHI			= (float **) Calloc(basisMax,float);
+	BASIS_Targets		= (float *) R_Calloc(M_full,float);
+	BASIS_PHI			= (float **) R_Calloc(basisMax,float);
 	for(i=0;i<M;i++)
 	{
-		BASIS_PHI[i] 	= (float *) Calloc(M_full,float);
+		BASIS_PHI[i] 	= (float *) R_Calloc(M_full,float);
 	}
 
 
@@ -378,18 +378,18 @@ void LinearFastEmpBayesGFNeg(int *Used, double *Mu, double *SIGMA, double *H, do
 	CacheBP(BASIS_PHI, BASIS_Targets, BASIS, PHI,	Targets,Scales,N,K,M,M_full);
 
 	//double *S_in, *Q_in, *S_out, *Q_out,*gamma;
-	//S_in				= (double *) Calloc(M_full,double);
-	//Q_in				= (double *) Calloc(M_full,double);
-	//S_out				= (double *) Calloc(M_full,double);
-	//Q_out				= (double *) Calloc(M_full,double);
+	//S_in				= (double *) R_Calloc(M_full,double);
+	//Q_in				= (double *) R_Calloc(M_full,double);
+	//S_out				= (double *) R_Calloc(M_full,double);
+	//Q_out				= (double *) R_Calloc(M_full,double);
 	float *S_in, *Q_in, *S_out, *Q_out;
-	S_in				= (float *) Calloc(M_full,float);
-	Q_in				= (float *) Calloc(M_full,float);
-	S_out				= (float *) Calloc(M_full,float);
-	Q_out				= (float *) Calloc(M_full,float);
+	S_in				= (float *) R_Calloc(M_full,float);
+	Q_in				= (float *) R_Calloc(M_full,float);
+	S_out				= (float *) R_Calloc(M_full,float);
+	Q_out				= (float *) R_Calloc(M_full,float);
 
 
-	double *gamma				= (double *) Calloc(basisMax,double);
+	double *gamma				= (double *) R_Calloc(basisMax,double);
     //[beta,SIGMA2,Mu2,S_in,Q_in,S_out,Q_out,Intercept] ...
     //                   	= FullstatCategory(BASIS,Scales,PHI2,Targets,Used,Alpha,Mu2,BASIS_CACHE)
 	int i_iter = 0;
@@ -404,11 +404,11 @@ void LinearFastEmpBayesGFNeg(int *Used, double *Mu, double *SIGMA, double *H, do
     double deltaInv,kappa,Mujj;
     //
 	int *Action, *anyToDelete,selectedAction;
-	anyToDelete			= (int*) Calloc(1,int);
-	DeltaML				=	(double *) Calloc(M_full,double);
-	AlphaRoot			=	(double *) Calloc(M_full,double);
-	Action				= (int *) Calloc(M_full,int);
-  	phi					= (double *) Calloc(N,double);
+	anyToDelete			= (int*) R_Calloc(1,int);
+	DeltaML				=	(double *) R_Calloc(M_full,double);
+	AlphaRoot			=	(double *) R_Calloc(M_full,double);
+	Action				= (int *) R_Calloc(M_full,int);
+  	phi					= (double *) R_Calloc(N,double);
 
     int nu,jj,index;
     jj					= -1;
@@ -419,8 +419,8 @@ void LinearFastEmpBayesGFNeg(int *Used, double *Mu, double *SIGMA, double *H, do
     int LAST_ITERATION  = 0;
 	//Gauss update
 	double *PHI_Mu,*e;
-	PHI_Mu				= (double*) Calloc(N,double);
-	e					= (double*) Calloc(N,double);
+	PHI_Mu				= (double*) R_Calloc(N,double);
+	e					= (double*) R_Calloc(N,double);
 	double betaZ1;
 	double deltaLogBeta;
 	double ee;
@@ -428,7 +428,7 @@ void LinearFastEmpBayesGFNeg(int *Used, double *Mu, double *SIGMA, double *H, do
 
 
 	double temp;			// for action_reestimate
-	double * SIGMANEW	= (double * ) Calloc((basisMax*basisMax), double);
+	double * SIGMANEW	= (double * ) R_Calloc((basisMax*basisMax), double);
 if(verbose >3) Rprintf("check point 3: before loop \n");
    while(LAST_ITERATION!=1)
     {
@@ -582,7 +582,7 @@ if(verbose >3) Rprintf("check point 3: before loop \n");
 
 			//BASIS_B_Phi	=BASIS_Phi*beta;
 			//allocate one more row of BASIS_PHI
-			//BASIS_PHI[M] 	= (float *) Calloc(M_full,float);
+			//BASIS_PHI[M] 	= (float *) R_Calloc(M_full,float);
 			UPDATE_REQUIRED		= ActionAddGFNeg(BASIS_PHI, BASIS, Scales, PHI, phi, beta, Alpha,
 				newAlpha, SIGMA, Mu, S_in, Q_in, nu, SIGMANEW, M_full, N, K, M);
 
@@ -610,8 +610,8 @@ if(verbose >3) Rprintf("check point 3: before loop \n");
             UPDATE_REQUIRED = ActionDelGFNeg(PHI, Alpha, SIGMA, SIGMANEW, BASIS_PHI,
 				Mu, S_in, Q_in, beta, jj, N, M, M_full);
 			index					= M -1;
-			//free deleted row of BASIS_PHI
-			Free(BASIS_PHI[index]);
+			//R_Free deleted row of BASIS_PHI
+			R_Free(BASIS_PHI[index]);
             //Used; Unused;
             Used[jj]				= Used[index];
 
@@ -707,7 +707,7 @@ if(verbose >3) Rprintf("check point 3: before loop \n");
     }
 
 	//C_inv                       = beta*eye(N)-beta^2*PHI*SIGMA*PHI';
-	double*PHIsig	= (double *) Calloc((N*M),double); // PHI *SIGMA
+	double*PHIsig	= (double *) R_Calloc((N*M),double); // PHI *SIGMA
 	transb = 'N';
 	lda = N;
 	ldb = M;
@@ -748,31 +748,31 @@ if(verbose >3) Rprintf("check point 3: before loop \n");
 	// }
 
 	 for(i=0;i<N;i++) C_inv[i*N+i]	=C_inv[i*N+i]	+ beta[0];
-	Free(PHIsig);
-	Free(BASIS_Targets);
-	//Free(BASIS_PHI);
+	R_Free(PHIsig);
+	R_Free(BASIS_Targets);
+	//R_Free(BASIS_PHI);
 	for(i=0;i<M;i++)
 	{
-		Free(BASIS_PHI[i]);
+		R_Free(BASIS_PHI[i]);
 	}
-	Free(BASIS_PHI);
+	R_Free(BASIS_PHI);
 
-	Free(S_in);
-	Free(Q_in);
-	Free(S_out);
-	Free(Q_out);
-	Free(gamma);
-	Free(anyToDelete);
-	Free(DeltaML);
-	Free(AlphaRoot);
-	Free(Action);
-	Free(phi);
-	Free(PHI_Mu);
-	Free(e);
-	Free(Unused);
+	R_Free(S_in);
+	R_Free(Q_in);
+	R_Free(S_out);
+	R_Free(Q_out);
+	R_Free(gamma);
+	R_Free(anyToDelete);
+	R_Free(DeltaML);
+	R_Free(AlphaRoot);
+	R_Free(Action);
+	R_Free(phi);
+	R_Free(PHI_Mu);
+	R_Free(e);
+	R_Free(Unused);
 
-	Free(SIGMANEW);
-	Free(IniLogic);
+	R_Free(SIGMANEW);
+	R_Free(IniLogic);
 
 
 
@@ -923,10 +923,10 @@ void LinearSolverGFNeg(double * a, double *logout, int N, int M,double *output)
 	const double Rcond	= 1e-5;
 	int rank			= M;
 	int *jpvt;
-	jpvt				= (int * ) Calloc(M,int);
+	jpvt				= (int * ) R_Calloc(M,int);
 	const int lwork	= M*N + 4*N;
 	double * work;
-	work				= (double *) Calloc(lwork,double);
+	work				= (double *) R_Calloc(lwork,double);
 
 	int info			= 0;
 	// *************************Call LAPACK library ************************
@@ -934,8 +934,8 @@ void LinearSolverGFNeg(double * a, double *logout, int N, int M,double *output)
 	if(info!=0)
 	{
 		Rprintf("Call linear solver degls error!\n");
-		Free(jpvt);
-		Free(work);
+		R_Free(jpvt);
+		R_Free(work);
 		return;
 	}
 
@@ -944,8 +944,8 @@ void LinearSolverGFNeg(double * a, double *logout, int N, int M,double *output)
 	//output				= (double *) realloc(NULL,M*sizeof(double));
 	for (i=0;i<M;i++) output[i] = logout[i];
 
-	Free(jpvt);
-	Free(work);
+	R_Free(jpvt);
+	R_Free(work);
 }
 
  /// ***********************************************************************************************
@@ -955,9 +955,9 @@ void CacheBP(float **BASIS_PHI, float *BASIS_Targets, double *BASIS, double *PHI
 				double *Targets, float *scales,int N,int K,int M,int M_full)
 {
 	double	zTargets;
-	double *z2					= (double *) Calloc(M,double);
-	double *cache1				= (double *) Calloc(N,double);
-	double *cache2				= (double *) Calloc((N*M),double);
+	double *z2					= (double *) R_Calloc(M,double);
+	double *cache1				= (double *) R_Calloc(N,double);
+	double *cache2				= (double *) R_Calloc((N*M),double);
 
 	int i,j,h,l;
 	int kk						= K;
@@ -1006,9 +1006,9 @@ void CacheBP(float **BASIS_PHI, float *BASIS_Targets, double *BASIS, double *PHI
 		}
 	}
 
-	Free(z2);
-	Free(cache1);
-	Free(cache2);
+	R_Free(z2);
+	R_Free(cache1);
+	R_Free(cache2);
 }
 
 
@@ -1064,7 +1064,7 @@ void fEBLinearFullStatGFNeg(double *beta, double * SIGMA, double *H, float *S_in
 
 
 	//Muu				=SIGMA*(PHI.Transpose()*Targets)*beta;
-	double * PHIt		= (double *) Calloc(M,double);
+	double * PHIt		= (double *) R_Calloc(M,double);
 	//for(i=0;i<M;i++)
 	//{
 	//	PHIt[i]		= 0;
@@ -1096,7 +1096,7 @@ void fEBLinearFullStatGFNeg(double *beta, double * SIGMA, double *H, float *S_in
     //Main loop
         //temp parameters: BPvector
     double *BPvector;
-    BPvector			= (double *) Calloc(M,double);
+    BPvector			= (double *) R_Calloc(M,double);
     double tempSum,tempBPMu;
 
     for(i=0; i<M_full; i++)
@@ -1146,8 +1146,8 @@ void fEBLinearFullStatGFNeg(double *beta, double * SIGMA, double *H, float *S_in
 			Print				= Alpha[i];
 			Rprintf("Alpha: %f\n",Print);*/
 	}
-	Free(PHIt);
-	Free(BPvector);
+	R_Free(PHIt);
+	R_Free(BPvector);
 
 
 
@@ -1496,16 +1496,16 @@ int ActionAddGFNeg(float **BASIS_PHI, double* BASIS, float*scales, double*PHI, d
 			double *beta, double* Alpha, double newAlpha, double*SIGMA, double*Mu, float*S_in,
 			float*Q_in, int nu, double*SIGMANEW, int M_full,int N, int K, int M)
 {
-	//double *BASIS_Phi		= (double *) Calloc(M_full,double);
-	float *BASIS_Phi		= (float *) Calloc(M_full,float);
-	double *BASIS_B_Phi		= (double *) Calloc(M_full,double);
-	double *mCi				= (double *) Calloc(M_full,double);
-	double *z				= (double *) Calloc(N,double);
+	//double *BASIS_Phi		= (double *) R_Calloc(M_full,double);
+	float *BASIS_Phi		= (float *) R_Calloc(M_full,float);
+	double *BASIS_B_Phi		= (double *) R_Calloc(M_full,double);
+	double *mCi				= (double *) R_Calloc(M_full,double);
+	double *z				= (double *) R_Calloc(N,double);
 	int kk					= K;
 	int i,j,h;
 	int index				= M + 1;
-	double*   	tmp			= (double *) Calloc(M,double);
-  	double*		tmpp		= (double *) Calloc(M,double);
+	double*   	tmp			= (double *) R_Calloc(M,double);
+  	double*		tmpp		= (double *) R_Calloc(M,double);
 	double s_ii,mu_i,TAU;
 	//lapack
 	int inci =1;
@@ -1575,7 +1575,7 @@ int ActionAddGFNeg(float **BASIS_PHI, double* BASIS, float*scales, double*PHI, d
 
     Mu[M]					= mu_i;							//new element
 
-	double * s_i			= (double *) Calloc(M,double);
+	double * s_i			= (double *) R_Calloc(M,double);
 	//for(i=0;i<M;i++)		s_i[i]				= - tmpp[i]	*s_ii;
 	F77_CALL(dcopy)(&M,tmpp,&inci,s_i,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
 	b_blas = -s_ii;
@@ -1624,13 +1624,13 @@ int ActionAddGFNeg(float **BASIS_PHI, double* BASIS, float*scales, double*PHI, d
 
 	int UPDATE_REQUIRED		= 1;
 
-	Free(s_i);
-	//Free(BASIS_Phi);
-	Free(BASIS_B_Phi);
-	Free(mCi);
-	Free(z);
-	Free(tmp);
-	Free(tmpp);
+	R_Free(s_i);
+	//R_Free(BASIS_Phi);
+	R_Free(BASIS_B_Phi);
+	R_Free(mCi);
+	R_Free(z);
+	R_Free(tmp);
+	R_Free(tmpp);
 
 	return  UPDATE_REQUIRED;
  }
@@ -1662,7 +1662,7 @@ int ActionDelGFNeg(double*PHI, double*Alpha, double*SIGMA, double*SIGMANEW, floa
 	Mu[jj]					= Mu[index];
 	//------------------------------------------------------------------------------
 	//BLOCK MIGRATION OF SIGMANEW ------------------JUN142013 -------IN EBELASTICNET
-	double *tempSIGMA = (double *) Calloc((M*M),double);
+	double *tempSIGMA = (double *) R_Calloc((M*M),double);
 	for(i=0;i<M;i++)
 	{
 		for(j=0;j<M;j++)	tempSIGMA[j*M + i]	= SIGMA[j*M + i] - SIGMA[jj*M+i]/SIGMA[jj*M+jj]*SIGMA[jj*M+j];
@@ -1731,7 +1731,7 @@ int ActionDelGFNeg(double*PHI, double*Alpha, double*SIGMA, double*SIGMANEW, floa
 
 	int UPDATE_REQUIRED		=1;
 
-	Free(tempSIGMA);
+	R_Free(tempSIGMA);
 	return  UPDATE_REQUIRED;
 }//end of ACTION_DELETE
 
@@ -1804,7 +1804,7 @@ void FinalUpdateGFNeg(double *PHI, double *H,double *SIGMA, double *Targets,
 	MatrixInverseGFNeg(SIGMA,M);				//inverse of H2 is needed for wald score
 
 	//Muu						=SIGMA*(PHI.Transpose()*Targets)*beta;
-	double * PHIt				= (double *) Calloc(M,double);
+	double * PHIt				= (double *) R_Calloc(M,double);
 	//for(i=0;i<M;i++)
 	//{
 	//	PHIt[i]					= 0;
@@ -1828,7 +1828,7 @@ void FinalUpdateGFNeg(double *PHI, double *H,double *SIGMA, double *Targets,
 	b_blas = beta[0];
 	F77_CALL(dscal)(&M,&b_blas,Mu,&inci); //dscal(n, a, x, incx)
 
-	Free(PHIt);
+	R_Free(PHIt);
 }
 
 

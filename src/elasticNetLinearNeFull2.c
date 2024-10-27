@@ -87,7 +87,7 @@ void elasticNetLinearNeEpisEff(double *BASIS, double *y, double *a_lambda,double
 	double vk0				= 1e-30;
 	double temp				= 0;
 	int i,j,l,kk;
-	double *Scales			= (double * ) Calloc(M_full, double);
+	double *Scales			= (double * ) R_Calloc(M_full, double);
 	//lapack
 	int inci =1;
 	int incj =1;
@@ -141,16 +141,16 @@ Beta[M_full*4 + kk] = 0;
 	double *Mu, *SIGMA, *H, *Alpha, *PHI,*Targets,*C_inv;
 	int * Used,*iteration, *m;
 
-	Used					= (int* ) Calloc(basisMax, int);
-	Mu						= (double * ) Calloc(basisMax, double);
-	SIGMA					= (double * ) Calloc(basisMax*basisMax, double);
-	H						= (double * ) Calloc(basisMax*basisMax, double);
-	Alpha					= (double * ) Calloc(basisMax, double);
-	PHI						= (double * ) Calloc(N*basisMax, double);
-	Targets					= (double * ) Calloc(N, double);
-	iteration				= (int* ) Calloc(1, int);
-	m						= (int* ) Calloc(1, int);
-	C_inv					= (double * ) Calloc(N*N, double);
+	Used					= (int* ) R_Calloc(basisMax, int);
+	Mu						= (double * ) R_Calloc(basisMax, double);
+	SIGMA					= (double * ) R_Calloc(basisMax*basisMax, double);
+	H						= (double * ) R_Calloc(basisMax*basisMax, double);
+	Alpha					= (double * ) R_Calloc(basisMax, double);
+	PHI						= (double * ) R_Calloc(N*basisMax, double);
+	Targets					= (double * ) R_Calloc(N, double);
+	iteration				= (int* ) R_Calloc(1, int);
+	m						= (int* ) R_Calloc(1, int);
+	C_inv					= (double * ) R_Calloc(N*N, double);
 	if(verbose >1) Rprintf("outer loop starts");
 	m[0]			= 1;
 	int M					= m[0];
@@ -162,7 +162,7 @@ Beta[M_full*4 + kk] = 0;
 
 	b						= b/N;
 	double beta;
-	double *Csum			= (double *) Calloc(N,double);
+	double *Csum			= (double *) R_Calloc(N,double);
 	double Cinv,Cinvy;
 	while (iter<iter_max && err>err_max)
 	{
@@ -208,7 +208,7 @@ Beta[M_full*4 + kk] = 0;
 
 	// wald score
 	M					= m[0];
-	double *tempW			= (double * ) Calloc(M,double);
+	double *tempW			= (double * ) R_Calloc(M,double);
 
 	wald[0]					= 0;
 	int index = 0;
@@ -240,19 +240,19 @@ Beta[M_full*4 + index] = Used[i];
 	residual[0] 	= 1/(beta + 1e-10);
 	//Rprintf("fEB computation compelete!\n");
 
-	Free(Scales);
-	Free(Used);
-	Free(Mu);
-	Free(SIGMA);
-	Free(H);
-	Free(Alpha);
-	Free(PHI);
-	Free(Targets);
-	Free(iteration);
-	Free(m);
-	Free(C_inv);
-	Free(Csum);
-	Free(tempW);
+	R_Free(Scales);
+	R_Free(Used);
+	R_Free(Mu);
+	R_Free(SIGMA);
+	R_Free(H);
+	R_Free(Alpha);
+	R_Free(PHI);
+	R_Free(Targets);
+	R_Free(iteration);
+	R_Free(m);
+	R_Free(C_inv);
+	R_Free(Csum);
+	R_Free(tempW);
 
 }
 
@@ -271,7 +271,7 @@ void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
     M_full				= K*(K+1)/2;
 	kk					= K;
 
-	int *Unused			= (int *) Calloc(M_full,int);
+	int *Unused			= (int *) R_Calloc(M_full,int);
     iter				= *iteration;
 	//Rprintf("Iteration number: %d\n",iter);
     const int	ACTION_REESTIMATE       = 0;
@@ -285,7 +285,7 @@ void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
 	const double	MinDeltaLogBeta		=1e-6;
     //[Alpha,PHI2,Used,Unused,Mu2]=InitialCategory(BASIS,Targets,Scales,PHI2,Used,Alpha,Mu2,IniLogic)
     int *IniLogic;
-	IniLogic			= (int*) Calloc(1,int);
+	IniLogic			= (int*) R_Calloc(1,int);
     if (iter<=1)
     {
         IniLogic[0]     = 0;
@@ -324,21 +324,21 @@ void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
 	//for(i=0;i<10;i++) Rprintf("PHI2: %f \t  %f; BASIS: %f\n",PHI2[i],PHI2[N+i],BASIS[181*N+i]/Scales[181]);
     //CACHE MATRIX
 	double *BASIS_Targets,**BASIS_PHI;/* ********* Sep. 27, 2014 ************* */
-	BASIS_Targets		= (double *) Calloc(M_full,double);
-	BASIS_PHI			= (double **) Calloc(basisMax,double);
+	BASIS_Targets		= (double *) R_Calloc(M_full,double);
+	BASIS_PHI			= (double **) R_Calloc(basisMax,double);
 	for(i=0;i<M;i++)
 	{
-		BASIS_PHI[i] 	= (double *) Calloc(M_full,double);
+		BASIS_PHI[i] 	= (double *) R_Calloc(M_full,double);
 	}
 
 	CacheBPGfNeEN(BASIS_PHI, BASIS_Targets, BASIS, PHI,	Targets,Scales,N,K,M,M_full);
 
 	double *S_in, *Q_in, *S_out, *Q_out,*gamma;
-	S_in				= (double *) Calloc(M_full,double);
-	Q_in				= (double *) Calloc(M_full,double);
-	S_out				= (double *) Calloc(M_full,double);
-	Q_out				= (double *) Calloc(M_full,double);
-	gamma				= (double *) Calloc(basisMax,double);
+	S_in				= (double *) R_Calloc(M_full,double);
+	Q_in				= (double *) R_Calloc(M_full,double);
+	S_out				= (double *) R_Calloc(M_full,double);
+	Q_out				= (double *) R_Calloc(M_full,double);
+	gamma				= (double *) R_Calloc(basisMax,double);
     //[beta,SIGMA2,Mu2,S_in,Q_in,S_out,Q_out,Intercept] ...
     //                   	= FullstatCategory(BASIS,Scales,PHI2,Targets,Used,Alpha,Mu2,BASIS_CACHE)
 	int i_iter = 0;
@@ -353,11 +353,11 @@ void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
     double deltaInv,kappa,Mujj;
     //
 	int *Action, *anyToDelete,selectedAction;
-	anyToDelete			= (int*) Calloc(1,int);
-	DeltaML				=	(double *) Calloc(M_full,double);
-	AlphaRoot			=	(double *) Calloc(M_full,double);
-	Action				= (int *) Calloc(M_full,int);
-  	phi					= (double *) Calloc(N,double);
+	anyToDelete			= (int*) R_Calloc(1,int);
+	DeltaML				=	(double *) R_Calloc(M_full,double);
+	AlphaRoot			=	(double *) R_Calloc(M_full,double);
+	Action				= (int *) R_Calloc(M_full,int);
+  	phi					= (double *) R_Calloc(N,double);
 
     int nu,jj,index;
     jj					= -1;
@@ -368,8 +368,8 @@ void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
     int LAST_ITERATION  = 0;
 	//Gauss update
 	double *PHI_Mu,*e;
-	PHI_Mu				= (double*) Calloc(N,double);
-	e					= (double*) Calloc(N,double);
+	PHI_Mu				= (double*) R_Calloc(N,double);
+	e					= (double*) R_Calloc(N,double);
 	double betaZ1;
 	double deltaLogBeta;
 	double ee;
@@ -377,7 +377,7 @@ void LinearFastEmpBayesGfNeEN(int *Used, double *Mu, double *SIGMA, double *H, d
 
 
 	double temp;			// for action_reestimate
-	double * SIGMANEW	= (double * ) Calloc(basisMax*basisMax, double);
+	double * SIGMANEW	= (double * ) R_Calloc(basisMax*basisMax, double);
 if(verbose >3) Rprintf("check point 3: before loop \n");
    while(LAST_ITERATION!=1)
     {
@@ -554,8 +554,8 @@ if(verbose >3) Rprintf("check point 3: before loop \n");
             UPDATE_REQUIRED = ActionDelGfNeEN(PHI, Alpha, SIGMA, SIGMANEW, BASIS_PHI,
 				Mu, S_in, Q_in, beta, jj, N, M, M_full);
 			index					= M -1;
-			//free deleted row of BASIS_PHI
-			Free(BASIS_PHI[index]);
+			//R_Free deleted row of BASIS_PHI
+			R_Free(BASIS_PHI[index]);
             //Used; Unused;
             Used[jj]				= Used[index];
 
@@ -653,7 +653,7 @@ if(verbose >3) Rprintf("check point 3: before loop \n");
     }
 
 	//C_inv                       = beta*eye(N)-beta^2*PHI*SIGMA*PHI';
-	double*PHIsig	= (double *) Calloc(N*M,double); // PHI *SIGMA
+	double*PHIsig	= (double *) R_Calloc(N*M,double); // PHI *SIGMA
 	transb = 'N';
 	lda = N;
 	ldb = M;
@@ -697,29 +697,29 @@ if(verbose >3) Rprintf("check point 3: before loop \n");
 
 
 
-	Free(Unused);
-	Free(IniLogic);
-	Free(BASIS_Targets);
-	//Free(BASIS_PHI);
+	R_Free(Unused);
+	R_Free(IniLogic);
+	R_Free(BASIS_Targets);
+	//R_Free(BASIS_PHI);
 	for(i=0;i<M;i++)
 	{
-		Free(BASIS_PHI[i]);
+		R_Free(BASIS_PHI[i]);
 	}
-	Free(BASIS_PHI);
-	Free(S_in);
-	Free(Q_in);
-	Free(S_out);
-	Free(Q_out);
-	Free(gamma);
-	Free(anyToDelete);
-	Free(DeltaML);
-	Free(AlphaRoot);
-	Free(Action);
-	Free(phi);
-	Free(PHI_Mu);
-	Free(e);
-	Free(SIGMANEW);
-	Free(PHIsig);
+	R_Free(BASIS_PHI);
+	R_Free(S_in);
+	R_Free(Q_in);
+	R_Free(S_out);
+	R_Free(Q_out);
+	R_Free(gamma);
+	R_Free(anyToDelete);
+	R_Free(DeltaML);
+	R_Free(AlphaRoot);
+	R_Free(Action);
+	R_Free(phi);
+	R_Free(PHI_Mu);
+	R_Free(e);
+	R_Free(SIGMANEW);
+	R_Free(PHIsig);
 
 
 }
@@ -866,10 +866,10 @@ void LinearSolverGfNeEN(double * a, double *logout, int N, int M,double *output)
 	const double Rcond	= 1e-5;
 	int rank			= M;
 	int *jpvt;
-	jpvt				= (int * ) Calloc(M,int);
+	jpvt				= (int * ) R_Calloc(M,int);
 	const int lwork	= M*N + 4*N;
 	double * work;
-	work				= (double *) Calloc(lwork,double);
+	work				= (double *) R_Calloc(lwork,double);
 
 	int info			= 0;
 	// *************************Call LAPACK library ************************
@@ -888,8 +888,8 @@ void LinearSolverGfNeEN(double * a, double *logout, int N, int M,double *output)
 //for (i=0;i<M;i++) output[i] = logout[i];
 
 
-	Free(jpvt);
-	Free(work);
+	R_Free(jpvt);
+	R_Free(work);
 }
 
  /// ***********************************************************************************************
@@ -899,9 +899,9 @@ void CacheBPGfNeEN(double **BASIS_PHI, double *BASIS_Targets, double *BASIS, dou
 				double *Targets, double *scales,int N,int K,int M,int M_full)
 {
 	double	zTargets;
-	double *z2					= (double *) Calloc(M,double);
-	double *cache1				= (double *) Calloc(N,double);
-	double *cache2				= (double *) Calloc(N*M,double);
+	double *z2					= (double *) R_Calloc(M,double);
+	double *cache1				= (double *) R_Calloc(N,double);
+	double *cache2				= (double *) R_Calloc(N*M,double);
 
 	int i,j,h,l;
 	int kk						= K;
@@ -949,9 +949,9 @@ void CacheBPGfNeEN(double **BASIS_PHI, double *BASIS_Targets, double *BASIS, dou
 			}
 		}
 	}
-	Free(z2);
-	Free(cache1);
-	Free(cache2);
+	R_Free(z2);
+	R_Free(cache1);
+	R_Free(cache2);
 }
 
 
@@ -1007,7 +1007,7 @@ void fEBLinearFullStatGfNeEN(double *beta, double * SIGMA, double *H, double *S_
 
 
 	//Muu				=SIGMA*(PHI.Transpose()*Targets)*beta;
-	double * PHIt		= (double *) Calloc(M,double);
+	double * PHIt		= (double *) R_Calloc(M,double);
 	//for(i=0;i<M;i++)
 	//{
 	//	PHIt[i]		= 0;
@@ -1038,7 +1038,7 @@ void fEBLinearFullStatGfNeEN(double *beta, double * SIGMA, double *H, double *S_
     //Main loop
         //temp parameters: BPvector
     double *BPvector;
-    BPvector			= (double *) Calloc(M,double);
+    BPvector			= (double *) R_Calloc(M,double);
     double tempSum,tempBPMu;
 
     for(i=0; i<M_full; i++)
@@ -1090,8 +1090,8 @@ void fEBLinearFullStatGfNeEN(double *beta, double * SIGMA, double *H, double *S_
 			Print				= Alpha[i];
 			Rprintf("Alpha: %f\n",Print);*/
 	}
-	Free(PHIt);
-	Free(BPvector);
+	R_Free(PHIt);
+	R_Free(BPvector);
 
 }
 
@@ -1234,15 +1234,15 @@ int ActionAddGfNeEN(double **BASIS_PHI, double* BASIS, double*scales, double*PHI
 			double *beta, double* Alpha, double newAlpha, double*SIGMA, double*Mu, double*S_in,
 			double*Q_in, int nu, double*SIGMANEW, int M_full,int N, int K, int M)
 {
-	double *BASIS_Phi		= (double *) Calloc(M_full,double);
-	double *BASIS_B_Phi		= (double *) Calloc(M_full,double);
-	double *mCi				= (double *) Calloc(M_full,double);
-	double *z				= (double *) Calloc(N,double);
+	double *BASIS_Phi		= (double *) R_Calloc(M_full,double);
+	double *BASIS_B_Phi		= (double *) R_Calloc(M_full,double);
+	double *mCi				= (double *) R_Calloc(M_full,double);
+	double *z				= (double *) R_Calloc(N,double);
 	int kk					= K;
 	int i,j,h;
 	int index				= M + 1;
-	double*   	tmp			= (double *) Calloc(M,double);
-  	double*		tmpp		= (double *) Calloc(M,double);
+	double*   	tmp			= (double *) R_Calloc(M,double);
+  	double*		tmpp		= (double *) R_Calloc(M,double);
 	double s_ii,mu_i,TAU;
 
 	//lapack
@@ -1315,7 +1315,7 @@ int ActionAddGfNeEN(double **BASIS_PHI, double* BASIS, double*scales, double*PHI
 
     Mu[M]					= mu_i;							//new element
 
-	double * s_i			= (double *) Calloc(M,double);
+	double * s_i			= (double *) R_Calloc(M,double);
 	//for(i=0;i<M;i++)		s_i[i]				= - tmpp[i]	*s_ii;
 	F77_CALL(dcopy)(&M,tmpp,&inci,s_i,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
 	b_blas = -s_ii;
@@ -1360,13 +1360,13 @@ int ActionAddGfNeEN(double **BASIS_PHI, double* BASIS, double*scales, double*PHI
 	}
 	BASIS_PHI[M]=BASIS_Phi;
 	int UPDATE_REQUIRED		= 1;
-	//Free(BASIS_Phi);
-	Free(BASIS_B_Phi);
-	Free(mCi);
-	Free(z);
-	Free(tmp);
-	Free(tmpp);
-	Free(s_i);
+	//R_Free(BASIS_Phi);
+	R_Free(BASIS_B_Phi);
+	R_Free(mCi);
+	R_Free(z);
+	R_Free(tmp);
+	R_Free(tmpp);
+	R_Free(s_i);
 
 
 	return  UPDATE_REQUIRED;
@@ -1404,7 +1404,7 @@ int ActionAddGfNeEN(double **BASIS_PHI, double* BASIS, double*scales, double*PHI
 	Mu[jj]					= Mu[index];
 	//------------------------------------------------------------------------------
 	//BLOCK MIGRATION OF SIGMANEW ------------------JUN142013 -------IN EBELASTICNET
-	double *tempSIGMA = (double *) Calloc((M*M),double);
+	double *tempSIGMA = (double *) R_Calloc((M*M),double);
 	for(i=0;i<M;i++)
 	{
 		for(j=0;j<M;j++)	tempSIGMA[j*M + i]	= SIGMA[j*M + i] - SIGMA[jj*M+i]/SIGMA[jj*M+jj]*SIGMA[jj*M+j];
@@ -1470,7 +1470,7 @@ int ActionAddGfNeEN(double **BASIS_PHI, double* BASIS, double*scales, double*PHI
 	//F77_CALL(dcopy)(&M_full,readPtr2,&inci,readPtr1,&incj);  //dcopy(n, x, incx, y, incy) ---> y = x
 
 	int UPDATE_REQUIRED		=1;
-	Free(tempSIGMA);
+	R_Free(tempSIGMA);
 	return  UPDATE_REQUIRED;
 }//end of ACTION_DELETE
 
@@ -1547,7 +1547,7 @@ void FinalUpdateGfNeEN(double *PHI, double *H,double *SIGMA, double *Targets,
 	MatrixInverseGfNeEN(SIGMA,M);				//inverse of H2 is needed for wald score
 
 	//Muu						=SIGMA*(PHI.Transpose()*Targets)*beta;
-	double * PHIt				= (double *) Calloc(M,double);
+	double * PHIt				= (double *) R_Calloc(M,double);
 	//for(i=0;i<M;i++)
 	//{
 	//	PHIt[i]					= 0;
@@ -1572,6 +1572,6 @@ void FinalUpdateGfNeEN(double *PHI, double *H,double *SIGMA, double *Targets,
 	F77_CALL(dscal)(&M,&b_blas,Mu,&inci); //dscal(n, a, x, incx)
 
 
-	Free(PHIt);
+	R_Free(PHIt);
 }
 

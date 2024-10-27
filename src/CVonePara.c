@@ -65,7 +65,7 @@ void transposeB(double *B, int M, int N) //MxN input
 {
 	int MN = M*N;
 	double *tB,*readPtr1,*readPtr2;
-	tB 	= (double* ) Calloc(MN, double); 
+	tB 	= (double* ) R_Calloc(MN, double); 
 	
 	int i,inci,incj;
 	inci = 1;
@@ -78,7 +78,7 @@ void transposeB(double *B, int M, int N) //MxN input
 	}
 	
 	F77_CALL(dcopy)(&MN,tB,&inci,B,&inci);
-	Free(tB);
+	R_Free(tB);
 }
 
 //input X, y, 
@@ -105,7 +105,7 @@ void cvOnePara(double *BASIS, double *y, int *foldId, int *nfolds,
 	int GLM = *glm;
 	//transpose BASIS to avoid memory allocation repeation
 	int MN = N*p;
-	double *X 	= (double* ) Calloc(MN, double); 
+	double *X 	= (double* ) R_Calloc(MN, double); 
 	double *readPtr1,*readPtr2;
 	int i,j,jj,kk,cv,inci,incj;
 	int loc1, loc2;
@@ -113,11 +113,11 @@ void cvOnePara(double *BASIS, double *y, int *foldId, int *nfolds,
 	incj = 1;
 	F77_CALL(dcopy)(&MN,BASIS,&inci,X,&incj);
 	transposeB(X,N,p);
-	double *Xtrain = (double* ) Calloc(MN, double);  
-	double *Xtest  = (double* ) Calloc(MN, double); 
-	double *Ytrain = (double* ) Calloc(N, double); 
-	double *Ytest = (double* ) Calloc(N, double); 
-	double *SSE = (double* ) Calloc(N, double); 
+	double *Xtrain = (double* ) R_Calloc(MN, double);  
+	double *Xtest  = (double* ) R_Calloc(MN, double); 
+	double *Ytrain = (double* ) R_Calloc(N, double); 
+	double *Ytest = (double* ) R_Calloc(N, double); 
+	double *SSE = (double* ) R_Calloc(N, double); 
 	//for each fold of cv, read Xtrain, Xtest from X; 
 	//						transpose Xtrain, Xtest to function.
 	
@@ -125,10 +125,10 @@ void cvOnePara(double *BASIS, double *y, int *foldId, int *nfolds,
 	double *Beta;
 	double a_gamma, b_gamma;
 	double wald,intercept,Mu0,residual,logLIKELIHOOD;
-	double *Intercept = (double* ) Calloc(2, double); 
+	double *Intercept = (double* ) R_Calloc(2, double); 
 	int nEff  = p;
 	if(epis ==1) nEff = p*(p+1)/2;
-	Beta = (double* ) Calloc(nEff*5, double); 
+	Beta = (double* ) R_Calloc(nEff*5, double); 
 	jj = 0;
 	double temp, meanSE;
 	meanSE = 0;
@@ -233,9 +233,9 @@ ElasticNetBinaryNEfull(Xtrain,Ytrain, &b_gamma, &a_gamma,
 		{
 			if(Beta[nEff*2+i]!=0) M++;
 		}
-		double *PHI = (double* ) Calloc(nTe*M, double);
-		double *beta = (double* ) Calloc(M, double);
-		double *PHI_Mu = (double* ) Calloc(nTe, double);
+		double *PHI = (double* ) R_Calloc(nTe*M, double);
+		double *beta = (double* ) R_Calloc(M, double);
+		double *PHI_Mu = (double* ) R_Calloc(nTe, double);
 		kk = 0;
 		for(i=0;i<nEff;i++)
 		{
@@ -286,9 +286,9 @@ ElasticNetBinaryNEfull(Xtrain,Ytrain, &b_gamma, &a_gamma,
 				jj++;
 			}
 		}	
-	Free(PHI);
-	Free(beta);
-	Free(PHI_Mu);
+	R_Free(PHI);
+	R_Free(beta);
+	R_Free(PHI_Mu);
 	
 	}//end of for CV
 	//mean sde for this hyperparameter;
@@ -296,14 +296,14 @@ ElasticNetBinaryNEfull(Xtrain,Ytrain, &b_gamma, &a_gamma,
 	nLogL[1] = b_gamma;
 	nLogL[2] = meanSE/N;
 	nLogL[3] = stdTargets(SSE,N)/sqrt(Kcv);
-	Free(X);
-	Free(Xtrain);
-	Free(Xtest);
-	Free(Ytrain);
-	Free(Ytest);
-	Free(SSE);
-	Free(Intercept);
-	Free(Beta);
+	R_Free(X);
+	R_Free(Xtrain);
+	R_Free(Xtest);
+	R_Free(Ytrain);
+	R_Free(Ytest);
+	R_Free(SSE);
+	R_Free(Intercept);
+	R_Free(Beta);
 }
 			
 
@@ -326,8 +326,8 @@ void ProjectCorr(int *n, int *p,double*y0,double*BASIS,
 	int N 				= n[0];
 	int K 				= p[0];	
 	int epis 			= *epistasis;
-	double *y			= (double * ) Calloc(N, double);
-	double *z 			= (double * ) Calloc(N, double);
+	double *y			= (double * ) R_Calloc(N, double);
+	double *z 			= (double * ) R_Calloc(N, double);
 
 	int i,j,l;	
 	double normY, normX;
@@ -364,7 +364,7 @@ void ProjectCorr(int *n, int *p,double*y0,double*BASIS,
 			}//j<K			
 		}//if i<(K-1)		
 	}//i
-	//free memory
-	Free(y);
-	Free(z);
+	//R_Free memory
+	R_Free(y);
+	R_Free(z);
 }

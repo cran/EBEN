@@ -709,10 +709,10 @@ void LinearSolverBmNeEN(double * a, double *logout, int N, int M,double *output)
 	const double Rcond	= 1e-5;
 	int rank			= M;
 	int *jpvt;
-	jpvt				= (int * ) Calloc(M,int);
+	jpvt				= (int * ) R_Calloc(M,int);
 	const int lwork	= M*N + 4*N;
 	double * work;
-	work				= (double *) Calloc(lwork,double);
+	work				= (double *) R_Calloc(lwork,double);
 
 	int info			= 0;
 	// *************************Call LAPACK library ************************
@@ -729,8 +729,8 @@ void LinearSolverBmNeEN(double * a, double *logout, int N, int M,double *output)
 	int inci = 1;
 	int incj = 1;
 	F77_CALL(dcopy)(&M,logout,&inci,output,&incj);
-	Free(jpvt);
-	Free(work);
+	R_Free(jpvt);
+	R_Free(work);
 }
 
  /// ***********************************************************************************************

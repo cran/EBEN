@@ -22,7 +22,7 @@
 \tabular{ll}{
 Package: \tab EBEN\cr
 Type: \tab Package\cr
-Version: \tab 5.1\cr
+Version: \tab 5.2\cr
 Date: \tab 2015-10-06\cr
 License: \tab gpl\cr
 }
